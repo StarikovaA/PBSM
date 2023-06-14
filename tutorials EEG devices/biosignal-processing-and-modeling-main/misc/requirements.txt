@@ -1,0 +1,13 @@
+numpy
+pandas
+matplotlib
+seaborn
+scipy
+scikit_learn
+mne
+pygame
+pylsl
+pyqtgraph
+pyxdf
+screeninfo
+tqdm
