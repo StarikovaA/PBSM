@@ -2,6 +2,7 @@ import pygame
 import random
 import time
 from pygame.locals import *
+from q_function import ask_question
 
 # Initialize Pygame
 pygame.init()
@@ -118,6 +119,13 @@ while running:
                 iteration_count = 0
 
     elif game_state == 2:
+        ask_question(0)
+        # here could be the part with the eye blinking
+        game_state = 3
+        
+
+        
+    elif game_state == 3:
         # Display black screen for 2 seconds
         window.fill((0, 0, 0))  # Black
         pygame.display.update()
