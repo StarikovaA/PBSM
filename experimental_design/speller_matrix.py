@@ -2,6 +2,7 @@ import pygame
 import random
 import time
 from pygame.locals import *
+from q_function import ask_question
 
 # Initialize Pygame
 pygame.init()
@@ -122,6 +123,22 @@ while running:
         window.fill((0, 0, 0))  # Black
         pygame.display.update()
         time.sleep(2)
-        game_state = 0
+        game_state = 3
+        
+    elif game_state == 3:
+        # digit is the value from the classifier
+        ask_question(digit)
+        time.sleep(3)
+         if  blink_counter >=1:
+            # store the number and move on
+            time.sleep(0.5)
+            game_state = 0
+            
+        else:
+            #do not store the number 
+            time.sleep(0.5)
+            game_state = 1
+        
+
 
 pygame.quit()
