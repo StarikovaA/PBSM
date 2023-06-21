@@ -9,7 +9,8 @@ from pylsl import StreamInlet, local_clock, resolve_byprop, resolve_streams
 
 # Get the StreamInfo object by searching it by name
 #inlet_name = 'Liesl-Mock-EEG'
-inlet_name = 'EEG'
+#inlet_name = 'EEG'
+inlet_name = 'eye_blink_detection_markers'
 
 info = resolve_byprop('name', inlet_name)[0]
 

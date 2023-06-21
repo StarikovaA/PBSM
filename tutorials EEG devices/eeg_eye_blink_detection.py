@@ -12,6 +12,8 @@ Email:
 
 #! %matplotlib qt
 
+import sys
+
 import socket
 from time import time
 
@@ -101,7 +103,9 @@ class BlitManager:
             # restore the background
             cv.restore_region(self._bg)
             # draw all of the animated artists
+            #print(np.shape(self))
             self._draw_animated()
+            #print('test after animated')
             # update the GUI state
             cv.blit(fig.bbox)
         # let the GUI event loop process anything it has to do
@@ -133,7 +137,7 @@ def receive_eeg_samples(
         n_new_samples = len(chunk)
 
         # Convert the chunk into a np.array and transpose it
-        samples = [sample[:8] for sample in chunk]
+        samples = [sample[:24] for sample in chunk]
 
         # Extend the buffer with the data
         samples_buffer.extend(samples)
@@ -263,7 +267,7 @@ if __name__ == '__main__':
     info_eeg = StreamInfo(
         name='filtered_data_stream',
         type='eeg',
-        channel_count=8,
+        channel_count=24,
         channel_format='float32',
         source_id='smarting',
     )
@@ -330,8 +334,8 @@ if __name__ == '__main__':
     # ==================================================================================
 
     # Set the axis limits
-    y_min = -0.0007
-    y_max = 0.0007
+    y_min = -700
+    y_max = 700
     x_min = 0
     x_max = buffer_size
 
@@ -382,8 +386,8 @@ if __name__ == '__main__':
             # Tip: filter_data from MNE
             sfreq = 250 #from lsl_inlet.py
             l_freq = 1
-            h_freq = 40
-            filt_data = mne.filter.filter_data(samples_buffer, sfreq, l_freq, h_freq)
+            h_freq = 40 #or 40
+            filt_data = mne.filter.filter_data(np.array(samples_buffer).T, sfreq, l_freq, h_freq)
             #filt_data = np.array(samples_buffer).T
             ############################################################################
 
@@ -391,13 +395,33 @@ if __name__ == '__main__':
             # TODO: Smoothen the filtered signal with a moving average filter
             # Tip: uniform_filter1d
             moving_average = uniform_filter1d(filt_data,N)
+            filtered_data = moving_average
             ############################################################################
 
             if not refractory_period:
                 ########################################################################
                 # TODO: Implement the condition for peak detection
-                thr = 
-                detect_condition = any([sample == thr for sample in samples_buffer])
+           
+                #Get mean and std from baseline window
+                baseline_window = np.array(samples_buffer)[base_begin:base_end,idx]
+                #print(np.array(samples_buffer).shape)
+                baseline_mean = np.mean(baseline_window)
+                baseline_std = np.std(baseline_window)
+                c = 0.01 #later find right value for the factor c
+                thr = baseline_mean + c*baseline_std
+                
+                #print(np.shape(samples_buffer))
+                #print(activity_end- activity_begin)
+                activity_window = np.asarray(samples_buffer)[activity_begin:activity_end,idx]
+                #print(np.shape(activity_window))
+                max_activity = max(np.squeeze(activity_window))
+                
+
+                if max_activity <= thr:
+                    detect_condition = 0
+                elif max_activity > thr:
+                    detect_condition = 1
+                
                 ########################################################################
 
                 if detect_condition:
@@ -417,7 +441,10 @@ if __name__ == '__main__':
             else:
                 ########################################################################
                 # TODO: Implement refractory period and how to get out of it
-                pass
+                if n_new_samples > 0:
+                    refract_counter += 1
+                if refract_counter >= len_win + len_space + len_base:
+                    refractory_period = False
                 ########################################################################
 
             # Plotting
@@ -426,11 +453,17 @@ if __name__ == '__main__':
             if n_new_samples > 0:
                 # Update the artists (lines) in the subplots
                 x_range = range(len(samples_buffer))
+                #print('shape filt_data')
+                #print(np.shape(filt_data))
                 bm._artists[0].set_data(x_range, filt_data[idx])
                 bm._artists[1].set_data(x_range, thr)
+                print(thr, refractory_period)
+                #print('shape moving_average', np.shape(moving_average))
                 bm._artists[3].set_data(x_range, moving_average[idx])
                 bm._artists[4].set_data(x_range, thr)
                 bm.update()
+                #print('-----------------------')
+
 
         # Progress bar
         # ==============================================================================
