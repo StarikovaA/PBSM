@@ -62,6 +62,9 @@ counter_0 = 0
 counter_1 = 0
 counter_2 = 0
 
+# CHANGE
+digit = 0
+
 highlighted_symbols = []  # Keep track of the highlighted symbols
 
 while running:
@@ -135,7 +138,6 @@ while running:
             # Increment the iteration count
             iteration_count += 1
             print(f"Iteration: {iteration_count}, Highlighted Symbol: {highlighted_symbol}")
-            print(type(highlighted_symbol))
             if (highlighted_symbol == "0"):
                 counter_0 = counter_0 + 1
             elif (highlighted_symbol == "1"):
@@ -151,9 +153,22 @@ while running:
         window.fill((0, 0, 0))  # Black
         pygame.display.update()
         time.sleep(2)
-        game_state = 0
+        game_state = 3	
         counter_task += 1
         print(f'Task number: {counter_task}, 0: {counter_0}, 1: {counter_1}, 2: {counter_2}')
-  
+        
+    elif game_state == 3:	
+        # digit is the value from the classifier	
+        ask_question(digit)	
+        time.sleep(3)	
+        # if blink_counter >=1:	
+        #     # store the number and move on	
+        #     time.sleep(0.5)	
+        #     game_state = 0		
+        # else:	
+        #     #do not store the number 	
+        #     time.sleep(0.5)	
+        #     game_state = 1	
+        game_state = 0
 pygame.quit()
 
