@@ -2,6 +2,7 @@ import pygame
 import random
 import time
 from pygame.locals import *
+from q_function import ask_question
 
 # Initialize Pygame
 pygame.init()
@@ -144,7 +145,6 @@ while running:
             if iteration_count == 45:
                 game_state = 2
                 iteration_count = 0
-            
 
     elif game_state == 2:
         # Display black screen for 2 seconds
@@ -156,3 +156,4 @@ while running:
         print(f'Task number: {counter_task}, 0: {counter_0}, 1: {counter_1}, 2: {counter_2}')
   
 pygame.quit()
+
