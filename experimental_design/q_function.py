@@ -18,8 +18,8 @@ def ask_question (digit):
     bg = (220,220,220) #gray
 
     #desired size of the window
-    qwindow_width_cm = 6
-    qwindow_height_cm = 3
+    qwindow_width_cm = 13.32
+    qwindow_height_cm = 9.98
 
     # Calculate the window dimensions in pixels
     screen_resolution = pygame.display.Info() # Set the screen resolution in pixels
@@ -30,7 +30,7 @@ def ask_question (digit):
     window_height_px = int(qwindow_height_cm * cm_to_px_scale)
 
     # Set the font
-    fnt = pygame.font.SysFont("Arial",int(0.5 * min(window_width_px, window_height_px)))
+    fnt = pygame.font.SysFont("Arial",int(0.1 * min(window_width_px, window_height_px)))
 
     # render the text
     q_text = fnt.render(question,True, txt_color)
