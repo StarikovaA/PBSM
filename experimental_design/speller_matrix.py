@@ -43,19 +43,27 @@ for i in range(len(matrix_symbols)):
     # Add the position to the symbol_positions list
     symbol_positions.append((horizontal_position, vertical_position))
 
-##################################################################################
-# Main game loop
 
+# Main game loop
 running = True
 last_update_time = pygame.time.get_ticks()
 update_interval = 128  # literature said so
+
+
+# Define the symbol order combinations
+symbol_order_combinations = [
+    ["0", "1", "2"],
+    ["2", "0", "1"],
+    ["1", "2", "0"],
+]
 
 # New variables for game state and iteration count
 game_state = 0
 scene_state = 0
 iteration_count = 0
+combination_counter = 0
 
-while running:
+while True:
     if game_state == 0:
         if scene_state == 0:
             # Display black screen for 5 seconds
@@ -79,7 +87,7 @@ while running:
             time.sleep(1)
             game_state = 1  # Move to the next game state
     elif game_state == 1:
-    # Iterate the main game loop 15 times
+        # Iterate the main game loop 15 times
         for _ in range(10):
             window.fill((0, 0, 0))  # Black
             # Update the symbol colors every 128 milliseconds
@@ -87,15 +95,21 @@ while running:
             if current_time - last_update_time >= update_interval:
                 last_update_time = current_time
                 random.shuffle(symbol_colors)  # Randomly shuffle the symbol colors
-            
+
+            # Get the symbol order for the current combination index
+            symbol_order = symbol_order_combinations[combination_counter % len(symbol_order_combinations)]
+
             # Draw the symbols on the window
-            for symbol, position in zip(matrix_symbols, symbol_positions):
+            for symbol, position in zip(symbol_order, symbol_positions):
                 font_size = int(0.3 * min(window_width_px, window_height_px))  # Adjust font size based on window size
                 font = pygame.font.Font(None, font_size)
                 color = symbol_colors[matrix_symbols.index(symbol)]
-                text = font.render(symbol, True, color) 
+                text = font.render(symbol, True, color)
                 text_rect = text.get_rect(center=position)
                 window.blit(text, text_rect)
+
+                # Print the symbol to the terminal
+                print("Symbol:", symbol)
 
             # Update the display
             pygame.display.update()
@@ -103,16 +117,17 @@ while running:
             # Handle events
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
-                    running = False
+                    pygame.quit()
+                    exit()
                 elif event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_ESCAPE:
-                        running = False
+                        pygame.quit()
+                        exit()
 
             pygame.time.wait(update_interval)
 
             # Increment the iteration count
             iteration_count += 1
-            print(iteration_count)
             if iteration_count == 10:
                 game_state = 2
                 iteration_count = 0
@@ -122,6 +137,11 @@ while running:
         window.fill((0, 0, 0))  # Black
         pygame.display.update()
         time.sleep(2)
+        combination_counter += 1
+        if combination_counter == 10:
+            break
         game_state = 0
+        print("End of task")
+        print(combination_counter)
 
 pygame.quit()
