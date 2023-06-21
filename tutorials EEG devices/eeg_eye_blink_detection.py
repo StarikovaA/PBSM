@@ -382,7 +382,7 @@ if __name__ == '__main__':
             # Tip: filter_data from MNE
             sfreq = 250 #from lsl_inlet.py
             l_freq = 1
-            h_freq = 40
+            h_freq = 30 #or 40
             filt_data = mne.filter.filter_data(samples_buffer, sfreq, l_freq, h_freq)
             #filt_data = np.array(samples_buffer).T
             ############################################################################
@@ -391,13 +391,28 @@ if __name__ == '__main__':
             # TODO: Smoothen the filtered signal with a moving average filter
             # Tip: uniform_filter1d
             moving_average = uniform_filter1d(filt_data,N)
+            filtered_data = moving_average
             ############################################################################
 
             if not refractory_period:
                 ########################################################################
                 # TODO: Implement the condition for peak detection
-                thr = 
-                detect_condition = any([sample == thr for sample in samples_buffer])
+           
+                #Get mean and std from baseline window
+                baseline_window = samples_buffer[base_begin:base_end]
+                baseline_mean = np.mean(samples_buffer)
+                baseline_std = np.std(samples_buffer)
+                c = 0.1 #later find right value for the factor c
+                thr = baseline_mean + c*baseline_std
+    
+                activity_window = samples_buffer[activity_begin:activity_end]
+                max_activity = max(activity_window)
+
+                if max_activity <= thr:
+                    detect_condition = 0
+                elif max_activity > thr:
+                    detect_condition = 1
+                
                 ########################################################################
 
                 if detect_condition:
@@ -417,7 +432,9 @@ if __name__ == '__main__':
             else:
                 ########################################################################
                 # TODO: Implement refractory period and how to get out of it
-                pass
+                refract_counter += 1
+                if refract_counter == len_win + len_space:
+                    refractory_period = False
                 ########################################################################
 
             # Plotting
