@@ -51,7 +51,7 @@ for i in range(len(matrix_symbols)):
 
 running = True
 last_update_time = pygame.time.get_ticks()
-update_interval = 128  # literature said so
+update_interval = 1280  # literature said so
 
 # New variables for game state and iteration count
 game_state = 0
@@ -118,6 +118,23 @@ while running:
                 font = pygame.font.Font(None, font_size)
                 color = symbol_colors[matrix_symbols.index(symbol)]
                 text_color = highlighted_color if symbol == highlighted_symbol else color
+                print(f"!!!!!! MARKER IS SENT HERE {highlighted_symbol}")
+                if (highlighted_symbol == "0"):
+                    counter_0 = counter_0 + 1
+                    s0 = True
+                    s1 = False
+                    s2 = False
+                elif (highlighted_symbol == "1"):
+                    counter_1 = counter_1 + 1
+                    s0 = False
+                    s1 = True
+                    s2 = False
+                elif (highlighted_symbol == "2"):
+                    counter_2 = counter_2 + 1
+                    s0 = False
+                    s1 = False
+                    s2 = True
+                print(s0,s1,s2)
                 text = font.render(symbol, True, text_color) 
                 text_rect = text.get_rect(center=position)
                 window.blit(text, text_rect)
@@ -140,6 +157,7 @@ while running:
             print(f"Iteration: {iteration_count}, Highlighted Symbol: {highlighted_symbol}")
             if (highlighted_symbol == "0"):
                 counter_0 = counter_0 + 1
+
             elif (highlighted_symbol == "1"):
                 counter_1 = counter_1 + 1
             elif (highlighted_symbol == "2"):
