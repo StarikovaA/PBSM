@@ -128,8 +128,16 @@ while running:
     elif game_state == 3:
         # digit is the value from the classifier
         ask_question(digit)
-        # here should be the function taking the value from the eye blinking detector 
-        game_state = 0
+        time.sleep(3)
+         if  blink_counter >=1:
+            # store the number and move on
+            time.sleep(0.5)
+            game_state = 0
+            
+        else:
+            #do not store the number 
+            time.sleep(0.5)
+            game_state = 1
         
 
 
