@@ -39,3 +39,4 @@ def ask_question (digit):
     qwindow = pygame.display.set_mode((window_width_px, window_height_px))
     qwindow.fill(bg)
     qwindow.blit(q_text,(window_width_px//2 - q_text.get_width() // 2, window_height_px*0.5 - q_text.get_height() // 2))
+    pygame.display.flip()
