@@ -288,18 +288,18 @@ if __name__ == '__main__':
     chunk_size = 500
 
     # Length of the baseline for the peak detection
-    len_base = 400
+    len_base = 600
 
     # Length of the window for the peak detection
-    len_win = 150
-    # len_win = 200
+    #len_win = 150
+    len_win = 300
 
     # Length of the space between the baseline and the activity window
     len_space = 100
 
     # Define the delay of the windows
     # delay = 0
-    delay = 20
+    delay = 100
 
     # Define the baseline window
     base_begin = -len_win - delay - len_base - len_space
@@ -318,7 +318,7 @@ if __name__ == '__main__':
     # TODO: Define all necessary variables
 
     # Set the channel index (to a frontal channel)
-    idx = 1
+    idx = 0
     ch = ch_names[idx]
 
     # Define the length of the moving average filter (arbitrary)
@@ -334,8 +334,8 @@ if __name__ == '__main__':
     # ==================================================================================
 
     # Set the axis limits
-    y_min = -700
-    y_max = 700
+    y_min = -500
+    y_max = 500
     x_min = 0
     x_max = buffer_size
 
@@ -394,8 +394,8 @@ if __name__ == '__main__':
             ############################################################################
             # TODO: Smoothen the filtered signal with a moving average filter
             # Tip: uniform_filter1d
-            moving_average = uniform_filter1d(filt_data,N)
-            filtered_data = moving_average
+            moving_average = np.array(uniform_filter1d(filt_data,N)).T
+            #print(np.array(moving_average).shape)
             ############################################################################
 
             if not refractory_period:
@@ -403,20 +403,21 @@ if __name__ == '__main__':
                 # TODO: Implement the condition for peak detection
            
                 #Get mean and std from baseline window
-                baseline_window = np.array(samples_buffer)[base_begin:base_end,idx]
-                #print(np.array(samples_buffer).shape)
+                baseline_window = np.array(moving_average)[base_begin:base_end,idx]
+                #print(np.array(baseline_window).shape)
                 baseline_mean = np.mean(baseline_window)
                 baseline_std = np.std(baseline_window)
-                c = 0.01 #later find right value for the factor c
+                c = 7 #later find right value for the factor c
                 thr = baseline_mean + c*baseline_std
+                #print(thr)
                 
                 #print(np.shape(samples_buffer))
                 #print(activity_end- activity_begin)
-                activity_window = np.asarray(samples_buffer)[activity_begin:activity_end,idx]
+                activity_window = np.asarray(moving_average)[activity_begin:activity_end,idx]
                 #print(np.shape(activity_window))
-                max_activity = max(np.squeeze(activity_window))
-                
-
+                max_activity = max(activity_window)
+                #print(max_activity)
+                #print(thr)
                 if max_activity <= thr:
                     detect_condition = 0
                 elif max_activity > thr:
@@ -442,8 +443,11 @@ if __name__ == '__main__':
                 ########################################################################
                 # TODO: Implement refractory period and how to get out of it
                 if n_new_samples > 0:
-                    refract_counter += 1
-                if refract_counter >= len_win + len_space + len_base:
+                    #print(n_new_samples)
+                    #print(refract_counter)
+                    refract_counter += n_new_samples
+                    #print(len_win + len_space)
+                if refract_counter >= len_win + len_space + len_base + 100:
                     refractory_period = False
                 ########################################################################
 
@@ -455,11 +459,11 @@ if __name__ == '__main__':
                 x_range = range(len(samples_buffer))
                 #print('shape filt_data')
                 #print(np.shape(filt_data))
-                bm._artists[0].set_data(x_range, filt_data[idx])
+                bm._artists[0].set_data(x_range, np.array(filt_data).T[:,idx])
                 bm._artists[1].set_data(x_range, thr)
-                print(thr, refractory_period)
+                #print(thr, refractory_period)
                 #print('shape moving_average', np.shape(moving_average))
-                bm._artists[3].set_data(x_range, moving_average[idx])
+                bm._artists[3].set_data(x_range, moving_average[:,idx])
                 bm._artists[4].set_data(x_range, thr)
                 bm.update()
                 #print('-----------------------')
