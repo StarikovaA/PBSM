@@ -26,10 +26,12 @@ pygame.display.set_caption("P300")
 
 matrix_symbols = ["0", "1", "2"]
 symbol_colors = [
-    (255, 255, 255, 255),  # White (0)
+    (64, 64, 64, 255),  # All light gray
     (64, 64, 64, 255),
     (64, 64, 64, 255),
 ]
+
+highlighted_color = (255, 255, 255, 255)  # White color for highlighted symbols
 
 horizontal_gap = window_width_px // (len(matrix_symbols) + 1)
 vertical_position = window_height_px // 2
@@ -54,6 +56,12 @@ update_interval = 128  # literature said so
 game_state = 0
 scene_state = 0
 iteration_count = 0
+counter_task = 0
+counter_0 = 0
+counter_1 = 0
+counter_2 = 0
+
+highlighted_symbols = []  # Keep track of the highlighted symbols
 
 while running:
     if game_state == 0:
@@ -79,8 +87,8 @@ while running:
             time.sleep(1)
             game_state = 1  # Move to the next game state
     elif game_state == 1:
-    # Iterate the main game loop 15 times
-        for _ in range(10):
+        # Iterate the main game loop 15 times
+        for _ in range(45):
             window.fill((0, 0, 0))  # Black
             # Update the symbol colors every 128 milliseconds
             current_time = pygame.time.get_ticks()
@@ -88,12 +96,25 @@ while running:
                 last_update_time = current_time
                 random.shuffle(symbol_colors)  # Randomly shuffle the symbol colors
             
+            highlighted_symbol = None  # The symbol to be highlighted
+            
+            if len(highlighted_symbols) == len(matrix_symbols):
+                # If all symbols have been highlighted, reset the list
+                highlighted_symbols = []
+            
+            # Randomly select a symbol that hasn't been highlighted yet
+            while highlighted_symbol is None or highlighted_symbol in highlighted_symbols:
+                highlighted_symbol = random.choice(matrix_symbols)
+            
+            highlighted_symbols.append(highlighted_symbol)
+            
             # Draw the symbols on the window
             for symbol, position in zip(matrix_symbols, symbol_positions):
                 font_size = int(0.3 * min(window_width_px, window_height_px))  # Adjust font size based on window size
                 font = pygame.font.Font(None, font_size)
                 color = symbol_colors[matrix_symbols.index(symbol)]
-                text = font.render(symbol, True, color) 
+                text_color = highlighted_color if symbol == highlighted_symbol else color
+                text = font.render(symbol, True, text_color) 
                 text_rect = text.get_rect(center=position)
                 window.blit(text, text_rect)
 
@@ -112,10 +133,18 @@ while running:
 
             # Increment the iteration count
             iteration_count += 1
-            print(iteration_count)
-            if iteration_count == 10:
+            print(f"Iteration: {iteration_count}, Highlighted Symbol: {highlighted_symbol}")
+            print(type(highlighted_symbol))
+            if (highlighted_symbol == "0"):
+                counter_0 = counter_0 + 1
+            elif (highlighted_symbol == "1"):
+                counter_1 = counter_1 + 1
+            elif (highlighted_symbol == "2"):
+                counter_2 = counter_2 + 1
+            if iteration_count == 45:
                 game_state = 2
                 iteration_count = 0
+            
 
     elif game_state == 2:
         # Display black screen for 2 seconds
@@ -123,5 +152,7 @@ while running:
         pygame.display.update()
         time.sleep(2)
         game_state = 0
-
+        counter_task += 1
+        print(f'Task number: {counter_task}, 0: {counter_0}, 1: {counter_1}, 2: {counter_2}')
+  
 pygame.quit()
