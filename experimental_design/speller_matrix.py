@@ -126,8 +126,9 @@ while running:
         game_state = 3
         
     elif game_state == 3:
-        ask_question(0)
-        # here could be the part with the eye blinking
+        # digit is the value from the classifier
+        ask_question(digit)
+        # here should be the function taking the value from the eye blinking detector 
         game_state = 0
         
 
