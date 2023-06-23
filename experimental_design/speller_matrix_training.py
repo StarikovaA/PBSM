@@ -1,9 +1,43 @@
+# %%
+#%pip install pygame
+#If No module named 'pygame', run previous line
+import numpy as np
 import pygame
 import random
 import time
 from pygame.locals import *
-from q_function import ask_question
+from q_function import show_instruction
+from pylsl import StreamInfo, StreamOutlet, local_clock
 
+# %%
+# Lab Streaming Layer outlet for markers
+
+# Define the StreamInfo object or METADATA
+info = StreamInfo(
+    name='speller_matrix_markers_training',
+    type='Markers',
+    channel_count=1,
+    nominal_srate=0,
+    channel_format='string',
+    source_id='test_id',
+)
+
+# Create the StreamOutlet object
+#chunk_size and max_buffered has default values of chunk_size = 1 and max_buffered = chunk_size. This is what we need for our markers so no need to specify them in StreamOutlet
+outlet = StreamOutlet(info)
+
+# Destroy the StreamInfo object to save space (optional)
+info.__del__()
+outlet.have_consumers()
+#%%
+
+#
+highlight_number_per_task = np.repeat(["0", "1", "2"], 10)
+random.shuffle(highlight_number_per_task)
+
+print(highlight_number_per_task)
+
+# %%
 # Initialize Pygame
 pygame.init()
 
@@ -51,7 +85,8 @@ for i in range(len(matrix_symbols)):
 
 running = True
 last_update_time = pygame.time.get_ticks()
-update_interval = 1280  # literature said so
+#update_interval = 1280  # literature said so
+update_interval = 128  # literature said so
 
 # New variables for game state and iteration count
 game_state = 0
@@ -64,10 +99,14 @@ counter_2 = 0
 
 # CHANGE
 digit = 0
+instruction_number_index = 0
 
 highlighted_symbols = []  # Keep track of the highlighted symbols
 
 while running:
+    print(instruction_number_index)
+    if instruction_number_index == len(highlight_number_per_task):
+        running = False
     if game_state == 0:
         if scene_state == 0:
             # Display black screen for 5 seconds
@@ -76,21 +115,11 @@ while running:
             time.sleep(5)
             scene_state = 1
         elif scene_state == 1:
-            # Display the scene with light gray numbers for 1s
-            window.fill((0, 0, 0))  # Black
-            # Draw the symbols on the window with light gray color
-            for symbol, position in zip(matrix_symbols, symbol_positions):
-                font_size = int(0.3 * min(window_width_px, window_height_px))
-                font = pygame.font.Font(None, font_size)
-                color = (64, 64, 64, 255)  # Light Gray
-                text = font.render(symbol, True, color)
-                text_rect = text.get_rect(center=position)
-                window.blit(text, text_rect)
-            # Update the display
-            pygame.display.update()
-            time.sleep(1)
+            show_instruction(int(highlight_number_per_task[instruction_number_index]))
+            time.sleep(5)
             game_state = 1  # Move to the next game state
     elif game_state == 1:
+        print("Entre")
         # Iterate the main game loop 15 times
         for _ in range(45):
             window.fill((0, 0, 0))  # Black
@@ -113,28 +142,59 @@ while running:
             highlighted_symbols.append(highlighted_symbol)
             
             # Draw the symbols on the window
+            marker_sent = False
             for symbol, position in zip(matrix_symbols, symbol_positions):
                 font_size = int(0.3 * min(window_width_px, window_height_px))  # Adjust font size based on window size
                 font = pygame.font.Font(None, font_size)
                 color = symbol_colors[matrix_symbols.index(symbol)]
                 text_color = highlighted_color if symbol == highlighted_symbol else color
-                print(f"!!!!!! MARKER IS SENT HERE {highlighted_symbol}")
+                #print(f"!!!!!! MARKER IS SENT HERE {highlighted_symbol}")
                 if (highlighted_symbol == "0"):
+                    if not marker_sent:
+                        if highlight_number_per_task[instruction_number_index] == "0":
+                            marker = 'S10'
+                            outlet.push_sample([marker], time.time(), pushthrough=True)
+                        else:
+                            marker = 'S11'
+                            outlet.push_sample([marker], time.time(), pushthrough=True)
+                    marker_sent = True
+                    '''
                     counter_0 = counter_0 + 1
                     s0 = True
                     s1 = False
                     s2 = False
+                    '''
                 elif (highlighted_symbol == "1"):
+                    if not marker_sent:
+                        if highlight_number_per_task[instruction_number_index] == "1":
+                            marker = 'S10'
+                            outlet.push_sample([marker], time.time(), pushthrough=True)
+                        else:
+                            marker = 'S11'
+                            outlet.push_sample([marker], time.time(), pushthrough=True)
+                    marker_sent = True
+                    '''
                     counter_1 = counter_1 + 1
                     s0 = False
                     s1 = True
                     s2 = False
+                    '''
                 elif (highlighted_symbol == "2"):
+                    if not marker_sent:
+                        if highlight_number_per_task[instruction_number_index] == "2":
+                            marker = 'S10'
+                            outlet.push_sample([marker], time.time(), pushthrough=True)
+                        else:
+                            marker = 'S11'
+                            outlet.push_sample([marker], time.time(), pushthrough=True)
+                    marker_sent = True
+                    '''
                     counter_2 = counter_2 + 1
                     s0 = False
                     s1 = False
                     s2 = True
-                print(s0,s1,s2)
+                    '''
+                #print(s0,s1,s2)
                 text = font.render(symbol, True, text_color) 
                 text_rect = text.get_rect(center=position)
                 window.blit(text, text_rect)
@@ -154,7 +214,7 @@ while running:
 
             # Increment the iteration count
             iteration_count += 1
-            print(f"Iteration: {iteration_count}, Highlighted Symbol: {highlighted_symbol}")
+            #print(f"Iteration: {iteration_count}, Highlighted Symbol: {highlighted_symbol}")
             if (highlighted_symbol == "0"):
                 counter_0 = counter_0 + 1
 
@@ -173,20 +233,12 @@ while running:
         time.sleep(2)
         game_state = 3	
         counter_task += 1
-        print(f'Task number: {counter_task}, 0: {counter_0}, 1: {counter_1}, 2: {counter_2}')
+        #print(f'Task number: {counter_task}, 0: {counter_0}, 1: {counter_1}, 2: {counter_2}')
         
-    elif game_state == 3:	
-        # digit is the value from the classifier	
-        ask_question(digit)	
-        time.sleep(3)	
-        # if blink_counter >=1:	
-        #     # store the number and move on	
-        #     time.sleep(0.5)	
-        #     game_state = 0		
-        # else:	
-        #     #do not store the number 	
-        #     time.sleep(0.5)	
-        #     game_state = 1	
+    elif game_state == 3:
+        instruction_number_index = instruction_number_index + 1
         game_state = 0
 pygame.quit()
 
+
+# %%
