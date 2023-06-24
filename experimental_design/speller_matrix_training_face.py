@@ -82,7 +82,10 @@ for i in range(len(matrix_symbols)):
 
 ##################################################################################
 # Main game loop
-
+face = pygame.image.load('face.png')
+face_width = face.get_width()
+face_height = face.get_height()
+ 
 running = True
 last_update_time = pygame.time.get_ticks()
 #update_interval = 1280  # literature said so
@@ -142,7 +145,11 @@ while running:
                 font = pygame.font.Font(None, font_size)
                 color = symbol_colors[matrix_symbols.index(symbol)]
                 if symbol == highlighted_symbol:
-                    text_color = highlighted_color
+                    #text_color = highlighted_color
+                    face_x = position[0] - face_width // 2
+                    face_y = position[1] - face_height // 2
+                    face_position = (face_x, face_y)
+                    window.blit(face, face_position)
                     if symbol == highlight_number_per_task[instruction_number_index]:
                         marker = 'S10'
                         outlet.push_sample([marker], time.time(), pushthrough=True)
@@ -151,10 +158,9 @@ while running:
                         outlet.push_sample([marker], time.time(), pushthrough=True)
                 else:
                     text_color = color
-                
-                text = font.render(symbol, True, text_color) 
-                text_rect = text.get_rect(center=position)
-                window.blit(text, text_rect)
+                    text = font.render(symbol, True, text_color) 
+                    text_rect = text.get_rect(center=position)
+                    window.blit(text, text_rect)
 
             # Update the display
             pygame.display.update()
