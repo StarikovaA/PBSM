@@ -8,6 +8,15 @@ import time
 from pygame.locals import *
 from q_function import ask_question
 from pylsl import StreamInfo, StreamOutlet, local_clock
+from pylsl import StreamInlet, resolve_byprop
+# %%
+# Find the stream by its name and type
+inlet_name = 'eye_blink_detection_markers'
+#inlet_name = 'speller_matrix_markers_online'
+info = resolve_byprop('name', inlet_name)
+
+# Create an inlet for the first found stream
+inlet = StreamInlet(info[0])
 
 # %%
 # Lab Streaming Layer outlet for markers
@@ -31,12 +40,15 @@ info.__del__()
 outlet.have_consumers()
 #%%
 
-#
+
+
 highlight_number_per_task = np.repeat(["0", "1", "2"], 10)
 random.shuffle(highlight_number_per_task)
 
 print(highlight_number_per_task)
 
+#%%
+digit_set  = []
 # %%
 # Initialize Pygame
 pygame.init()
@@ -89,7 +101,7 @@ last_update_time = pygame.time.get_ticks()
 update_interval = 128  # literature said so
 
 # New variables for game state and iteration count
-game_state = 0
+game_state = 0 #just for testing, otherwise it should be 0
 scene_state = 0
 iteration_count = 0
 counter_task = 0
@@ -235,23 +247,27 @@ while running:
     elif game_state == 3:
         # digit is the value from the classifier	
         ask_question(digit)	
-        time.sleep(3)	
+        time.sleep(1)	
         if not marker_sent:
-                        marker = 'Sbs'
-                        outlet.push_sample([marker], time.time(), pushthrough=True)
-                    marker_sent = True
-        time.sleep(3)
+            marker = 'Sbs' #Start of the eye_blinking detection
+            outlet.push_sample([marker], time.time(), pushthrough=True)
+            marker_sent = True
+        # time.sleep(3)
+        start_time = time.time()
+        time_blink = 2
+        while elapsed_time <= time_blink:
+            sample, timestamp = inlet.pull_sample()
+            if sample is not None:
+                marker = 'Sbe' #End of the eye_blinking detection
+                outlet.push_sample([marker], time.time(), pushthrough=True)
+                digit_set = digit_set.append(digit)  
 
-        # if blink_counter >=1:	
-        #     # store the number and move on	
-        #     time.sleep(0.5)	
-        #     game_state = 0		
-        # else:	
-        #     #do not store the number 	
-        #     time.sleep(0.5)	
-        #     game_state = 1
-        instruction_number_index = instruction_number_index + 1
-        game_state = 0
+
+                instruction_number_index = instruction_number_index + 1
+                game_state = 0
+                break
+            end_time = time.time()
+            elapsed_time = end_time - start_time
 pygame.quit()
 
 
