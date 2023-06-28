@@ -122,7 +122,7 @@ while running:
             current_time = pygame.time.get_ticks()
             if current_time - last_update_time >= update_interval:
                 last_update_time = current_time
-                random.shuffle(symbol_colors)  # Randomly shuffle the symbol colors
+                # random.shuffle(symbol_colors)  # Randomly shuffle the symbol colors
             
             highlighted_symbol = None  # The symbol to be highlighted
             
@@ -144,10 +144,10 @@ while running:
                 if symbol == highlighted_symbol:
                     text_color = highlighted_color
                     if symbol == highlight_number_per_task[instruction_number_index]:
-                        marker = 'St'
+                        marker = 'S10'
                         outlet.push_sample([marker], time.time(), pushthrough=True)
                     else:
-                        marker = 'Sf'
+                        marker = 'S11'
                         outlet.push_sample([marker], time.time(), pushthrough=True)
                 else:
                     text_color = color
