@@ -236,6 +236,12 @@ while running:
         # digit is the value from the classifier	
         ask_question(digit)	
         time.sleep(3)	
+        if not marker_sent:
+                        marker = 'Sbs'
+                        outlet.push_sample([marker], time.time(), pushthrough=True)
+                    marker_sent = True
+        time.sleep(3)
+
         # if blink_counter >=1:	
         #     # store the number and move on	
         #     time.sleep(0.5)	
