@@ -144,10 +144,10 @@ while running:
                 if symbol == highlighted_symbol:
                     text_color = highlighted_color
                     if symbol == highlight_number_per_task[instruction_number_index]:
-                        marker = 'S10'
+                        marker = 'St'
                         outlet.push_sample([marker], time.time(), pushthrough=True)
                     else:
-                        marker = 'S11'
+                        marker = 'Sf'
                         outlet.push_sample([marker], time.time(), pushthrough=True)
                 else:
                     text_color = color
