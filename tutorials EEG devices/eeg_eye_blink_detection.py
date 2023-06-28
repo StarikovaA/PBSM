@@ -203,14 +203,14 @@ def new_subplot(fig, bm, title=None, color='navy', lw=2):
 
 # %%
 if __name__ == '__main__':
-    print('test')
+    
     # Find the stream by its name and type
     inlet_name = 'speller_matrix_markers_online'
     info = resolve_byprop('name', inlet_name)
 
     # Create an inlet for the first found stream
     inlet_markers = StreamInlet(info[0])
-    
+
     print("Looking for an EEG stream")
     streams = resolve_stream()
     print("Found one")

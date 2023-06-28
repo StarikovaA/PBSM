@@ -9,14 +9,6 @@ from pygame.locals import *
 from q_function import ask_question
 from pylsl import StreamInfo, StreamOutlet, local_clock
 from pylsl import StreamInlet, resolve_byprop
-# %%
-# Find the stream by its name and type
-inlet_name = 'eye_blink_detection_markers'
-#inlet_name = 'speller_matrix_markers_online'
-info = resolve_byprop('name', inlet_name)
-
-# Create an inlet for the first found stream
-inlet = StreamInlet(info[0])
 
 # %%
 # Lab Streaming Layer outlet for markers
@@ -247,7 +239,7 @@ while running:
     elif game_state == 3:
         # digit is the value from the classifier	
         ask_question(digit)	
-        time.sleep(1)	
+        time.sleep(5)	
         if not marker_sent:
             marker = 'Sbs' #Start of the eye_blinking detection
             outlet.push_sample([marker], time.time(), pushthrough=True)
@@ -255,6 +247,15 @@ while running:
         # time.sleep(3)
         start_time = time.time()
         time_blink = 2
+        # %%
+        # Find the stream by its name and type
+        inlet_name = 'eye_blink_detection_markers'
+        #inlet_name = 'speller_matrix_markers_online'
+        info = resolve_byprop('name', inlet_name)
+
+        # Create an inlet for the first found stream
+        inlet = StreamInlet(info[0])
+
         while elapsed_time <= time_blink:
             sample, timestamp = inlet.pull_sample()
             if sample is not None:
