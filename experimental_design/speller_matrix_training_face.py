@@ -116,6 +116,18 @@ while running:
             elif scene_state == 1:
                 show_instruction(int(highlight_number_per_task[instruction_number_index]))
                 time.sleep(5)
+                window.fill((0, 0, 0))  # Black
+                # Draw the symbols on the window with light gray color
+                for symbol, position in zip(matrix_symbols, symbol_positions):
+                    font_size = int(0.18 * min(window_width_px, window_height_px))
+                    font = pygame.font.Font(None, font_size)
+                    color = (64, 64, 64, 255)  # Light Gray
+                    text = font.render(symbol, True, color)
+                    text_rect = text.get_rect(center=position)
+                    window.blit(text, text_rect)
+                # Update the display
+                pygame.display.update()
+                time.sleep(1)
                 game_state = 1  # Move to the next game state
     elif game_state == 1:
         # Iterate the main game loop 15 times

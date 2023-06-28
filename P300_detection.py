@@ -24,7 +24,6 @@ from matplotlib.gridspec import GridSpec, SubplotSpec
 from pylsl import StreamInfo, StreamInlet, StreamOutlet, resolve_stream
 from scipy.ndimage import uniform_filter1d
 from tqdm import tqdm
-from pylsl import StreamInlet, resolve_byprop
 
 
 
@@ -203,14 +202,6 @@ def new_subplot(fig, bm, title=None, color='navy', lw=2):
 
 # %%
 if __name__ == '__main__':
-    
-    # Find the stream by its name and type
-    inlet_name = 'speller_matrix_markers_online'
-    info = resolve_byprop('name', inlet_name)
-
-    # Create an inlet for the first found stream
-    inlet_markers = StreamInlet(info[0])
-    
     print("Looking for an EEG stream")
     streams = resolve_stream()
     print("Found one")
@@ -265,13 +256,13 @@ if __name__ == '__main__':
     info['description'] = 'Smarting 24'
 
     # Create the outlet stream information
-    info_blink = StreamInfo(
-        name='eye_blink_detection_markers',
+    info_number = StreamInfo(
+        name='detected_number_markers',
         type='Markers',
         channel_count=1,
         nominal_srate=0,
         channel_format='string',
-        source_id='eye_blink_detection_markers',
+        source_id='detected_number_markers',
     )
     info_eeg = StreamInfo(
         name='filtered_data_stream',
@@ -282,7 +273,7 @@ if __name__ == '__main__':
     )
 
     # Create the outlet to send data
-    stream_blink = StreamOutlet(info_blink)
+    stream_number = StreamOutlet(info_number)
     stream_eeg = StreamOutlet(info_eeg)
 
     # Initialize the marker list
@@ -296,27 +287,6 @@ if __name__ == '__main__':
     buffer_size = 5000
     chunk_size = 500
 
-    # Length of the baseline for the peak detection
-    len_base = 600
-
-    # Length of the window for the peak detection
-    #len_win = 150
-    len_win = 300
-
-    # Length of the space between the baseline and the activity window
-    len_space = 100
-
-    # Define the delay of the windows
-    # delay = 0
-    delay = 100
-
-    # Define the baseline window
-    base_begin = -len_win - delay - len_base - len_space
-    base_end = -delay - len_win - len_space
-
-    # Define the eye blink detection window
-    activity_begin = -len_win - delay
-    activity_end = -delay
 
     # Variables for the calibration
     pbar = tqdm(desc='Calibration', total=buffer_size)
@@ -326,16 +296,8 @@ if __name__ == '__main__':
     ####################################################################################
     # TODO: Define all necessary variables
 
-    # Set the channel index (to a frontal channel)
-    idx = 0
-    ch = ch_names[idx]
-
     # Define the length of the moving average filter (arbitrary)
     N = 20
-
-    # Initalize the values for the refractory period
-    refractory_period = False
-    blink_counter = 0
     ####################################################################################
 
     # ==================================================================================
@@ -370,123 +332,44 @@ if __name__ == '__main__':
     # Single eye blink detection
     # ==================================================================================
     # Enter the endless loop
-
-    #change this!
     while True:
-        # Wait to receive a sample from the outlet
-        sample, timestamp = inlet.pull_sample()
+        # If the matplotlib figure is closed
+        if figure_closed:
+            # Break out of the loop
+            break
 
-        # Check if a "start looking for eye blinks" (Sbs = blink start) sample has been received
-        if sample == 'Sbs':
-            # Process the received sample
-            marker = sample[0]
-            print(f"Received marker: {marker}")
-            looking_for_blinks = true
+        # Get the EEG samples, time stamps and the index that tells from which
+        # point on the new samples have been appended to the buffer
+        samples_buffer, timestamps_buffer, n_new_samples = receive_eeg_samples(
+            inlet,
+            samples_buffer,
+            timestamps_buffer,
+            buffer_size=buffer_size,
+            chunk_size=chunk_size,
+        )
 
+        # Processing
+        # ==============================================================================
+        # Check if the calibration is over
+        if pbar_closed:
+            ############################################################################
+            # TODO: Band-pass filter the data
+            # Tip: filter_data from MNE
+            sfreq = 250 #from lsl_inlet.py
+            l_freq = 1
+            h_freq = 40 #or 40
+            filt_data = mne.filter.filter_data(np.array(samples_buffer).T, sfreq, l_freq, h_freq)
+            #filt_data = np.array(samples_buffer).T
+            ############################################################################
 
-            while looking_for_blinks:
-                # If the matplotlib figure is closed
-                if figure_closed:
-                    # Break out of the loop
-                    break
+            ############################################################################
+            # TODO: Smoothen the filtered signal with a moving average filter
+            # Tip: uniform_filter1d
+            moving_average = np.array(uniform_filter1d(filt_data,N)).T
+            #print(np.array(moving_average).shape)
+            ############################################################################
 
-
-                # Get the EEG samples, time stamps and the index that tells from which
-                # point on the new samples have been appended to the buffer
-                samples_buffer, timestamps_buffer, n_new_samples = receive_eeg_samples(
-                    inlet,
-                    samples_buffer,
-                    timestamps_buffer,
-                    buffer_size=buffer_size,
-                    chunk_size=chunk_size,
-                )
-
-                # Processing
-                # ==============================================================================
-                # Check if the calibration is over
-                if pbar_closed:
-                    ############################################################################
-                    # TODO: Band-pass filter the data
-                    # Tip: filter_data from MNE
-                    sfreq = 250 #from lsl_inlet.py
-                    l_freq = 1
-                    h_freq = 40 #or 40
-                    filt_data = mne.filter.filter_data(np.array(samples_buffer).T, sfreq, l_freq, h_freq)
-                    #filt_data = np.array(samples_buffer).T
-                    ############################################################################
-
-                    ############################################################################
-                    # TODO: Smoothen the filtered signal with a moving average filter
-                    # Tip: uniform_filter1d
-                    moving_average = np.array(uniform_filter1d(filt_data,N)).T
-                    #print(np.array(moving_average).shape)
-                    ############################################################################
-
-                    if not refractory_period:
-                        ########################################################################
-                        # TODO: Implement the condition for peak detection
-                
-                        #Get mean and std from baseline window
-                        baseline_window = np.array(moving_average)[base_begin:base_end,idx]
-                        #print(np.array(baseline_window).shape)
-                        baseline_mean = np.mean(baseline_window)
-                        baseline_std = np.std(baseline_window)
-                        c = 7 #later find right value for the factor c
-                        thr = baseline_mean + c*baseline_std
-                        #print(thr)
-                        
-                        #print(np.shape(samples_buffer))
-                        #print(activity_end- activity_begin)
-                        activity_window = np.asarray(moving_average)[activity_begin:activity_end,idx]
-                        #print(np.shape(activity_window))
-                        max_activity = max(activity_window)
-                        #print(max_activity)
-                        #print(thr)
-                        if max_activity <= thr:
-                            detect_condition = 0
-                        elif max_activity > thr:
-                            detect_condition = 1
-                        
-                        ########################################################################
-
-                        if detect_condition:
-                            # Send the time markers
-                            stream_blink.push_sample(['blink-' + str(time())])
-                            marker_list.append('blink-' + str(time()))
-
-                            # Increment the counter
-                            blink_counter += 1
-
-                            print(f'PEAK #{blink_counter} DETECTED')
-
-                            # Start the refractory period
-                            refract_counter = 1
-                            refractory_period = True
-
-                    else:
-                        ########################################################################
-                        # TODO: Implement refractory period and how to get out of it
-                        if n_new_samples > 0:
-                            #print(n_new_samples)
-                            #print(refract_counter)
-                            refract_counter += n_new_samples
-                            #print(len_win + len_space)
-                        if refract_counter >= len_win + len_space + len_base + 100:
-                            refractory_period = False
-                        ########################################################################
-                while True:
-                    # Wait to receive a sample from the outlet
-                    sample, timestamp = inlet.pull_sample()
-
-                    # Check if a "stop blink detection" (Sbe = blink end) sample has been received
-                    if sample == 'Sbe':
-                        # Process the received sample
-                        marker = sample[0]
-                        print(f"Received marker: {marker}")
-
-                        #In this case, end the loop looking for eye blinks
-                        looking_for_blinks = false
-                        break
+            #insert the code to extract a time window 500ms after receiving a marker (Sf and St)
 
 
 
