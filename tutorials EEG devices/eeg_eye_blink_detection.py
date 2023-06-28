@@ -210,6 +210,8 @@ if __name__ == '__main__':
 
     # Create an inlet for the first found stream
     inlet_markers = StreamInlet(info[0])
+    if 
+    inlet_markers.open_stream()
 
     print("Looking for an EEG stream")
     streams = resolve_stream()
@@ -381,7 +383,7 @@ if __name__ == '__main__':
             # Process the received sample
             marker = sample[0]
             print(f"Received marker: {marker}")
-            looking_for_blinks = true
+            looking_for_blinks = True
 
 
             while looking_for_blinks:
