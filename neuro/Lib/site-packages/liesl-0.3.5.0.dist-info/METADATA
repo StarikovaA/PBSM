@@ -1,0 +1,39 @@
+Metadata-Version: 2.1
+Name: liesl
+Version: 0.3.5.0
+Summary: Toolbox to receive and process LSL streams and handle XDF files.
+Home-page: https://github.com/pyreiz/pyliesl
+Download-URL: https://github.com/pyreiz/pyliesl
+Author: Robert Guggenberger
+Author-email: robert.guggenberger@uni-tuebingen.de
+License: MIT
+Platform: UNKNOWN
+Classifier: Development Status :: 5 - Production/Stable
+Classifier: Environment :: Console
+Classifier: Intended Audience :: Developers
+Classifier: Intended Audience :: Education
+Classifier: Intended Audience :: Healthcare Industry
+Classifier: Intended Audience :: Science/Research
+Classifier: Intended Audience :: Information Technology
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Classifier: Programming Language :: Python
+Classifier: Programming Language :: Python :: 3
+Classifier: Topic :: Scientific/Engineering :: Human Machine Interfaces
+Classifier: Topic :: Scientific/Engineering :: Medical Science Apps.
+Classifier: Topic :: Software Development :: Libraries
+Description-Content-Type: text/markdown
+Requires-Dist: pylsl
+Requires-Dist: pyxdf
+Requires-Dist: numpy
+
+# LieSL
+
+[![status](https://github.com/pyreiz/pyliesl/workflows/pytest/badge.svg)](https://github.com/pyreiz/pyliesl/actions) [![Documentation Status](https://readthedocs.org/projects/pyliesl/badge/?version=latest)](https://pyliesl.readthedocs.io/en/latest/?badge=latest) [![Coverage Status](https://coveralls.io/repos/github/pyreiz/pyliesl/badge.svg?branch=master)](https://coveralls.io/github/pyreiz/pyliesl?branch=master)
+
+LieSL is a set of tools to manage [LSL streams](https://labstreaminglayer.readthedocs.io/) and [xdf files](https://github.com/sccn/xdf/wiki/Specifications).
+
+# Documentation
+
+Find the full documentation at https://pyliesl.readthedocs.io/en/latest/?badge=latest
+

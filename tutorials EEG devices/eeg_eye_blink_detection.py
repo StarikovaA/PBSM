@@ -217,7 +217,7 @@ if __name__ == '__main__':
     inlet = StreamInlet(streams[0])
     print("Connected to the inlet")
 
-    # Supress MNE info messages and only show warnings
+    # Supress MNE messages and only show warnings
     mne.set_log_level(verbose='WARNING')
 
     # Set the channel names
@@ -371,14 +371,14 @@ if __name__ == '__main__':
     # Single eye blink detection
     # ==================================================================================
     # Enter the endless loop
-
     #change this!
     while True:
 
         # Wait to receive a sample from the outlet
         sample, timestamp = inlet.pull_sample()
+        print(sample, timestamp)
         # Check if a "start looking for eye blinks" (Sbs = blink start) sample has been received
-        if sample == 'Sbs':
+        if sample[0] == 'Sbs':
             # Process the received sample
             marker = sample[0]
             print(f"Received marker: {marker}")
@@ -481,13 +481,13 @@ if __name__ == '__main__':
                     sample, timestamp = inlet.pull_sample()
 
                     # Check if a "stop blink detection" (Sbe = blink end) sample has been received
-                    if sample == 'Sbe':
+                    if sample[0] == 'Sbe':
                         # Process the received sample
                         marker = sample[0]
                         print(f"Received marker: {marker}")
 
                         #In this case, end the loop looking for eye blinks
-                        looking_for_blinks = false
+                        looking_for_blinks = False
                         break
 
 

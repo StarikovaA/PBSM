@@ -9,6 +9,7 @@ from pygame.locals import *
 from q_function import ask_question
 from pylsl import StreamInfo, StreamOutlet, local_clock
 from pylsl import StreamInlet, resolve_byprop
+import liesl
 
 # %%
 # Lab Streaming Layer outlet for markers
@@ -27,19 +28,29 @@ info = StreamInfo(
 #chunk_size and max_buffered has default values of chunk_size = 1 and max_buffered = chunk_size. This is what we need for our markers so no need to specify them in StreamOutlet
 outlet = StreamOutlet(info)
 
+liesl.print_available_streams()
+
+inlet = None
+
+# %%
+# Find the stream by its name and type
+inlet_name = 'eye_blink_detection_markers'
+#inlet_name = 'speller_matrix_markers_online'
+info = resolve_byprop('name', inlet_name)
+print(info)
+
+# Create an inlet for the first found stream
+inlet = StreamInlet(info[0])
+
 # Destroy the StreamInfo object to save space (optional)
-info.__del__()
+info[0].__del__()
 outlet.have_consumers()
 #%%
-
-
-
 highlight_number_per_task = np.repeat(["0", "1", "2"], 10)
 random.shuffle(highlight_number_per_task)
 
 print(highlight_number_per_task)
 
-#%%
 digit_set  = []
 # %%
 # Initialize Pygame
@@ -101,6 +112,8 @@ counter_0 = 0
 counter_1 = 0
 counter_2 = 0
 
+elapsed_time = 0
+
 # CHANGE
 digit = 0
 instruction_number_index = 0
@@ -110,6 +123,9 @@ highlighted_symbols = []  # Keep track of the highlighted symbols
 while running:
     if instruction_number_index == len(highlight_number_per_task):
         running = False
+
+    print(game_state)
+    
     if game_state == 0:
         if scene_state == 0:
             # Display black screen for 5 seconds
@@ -165,7 +181,7 @@ while running:
                 if (highlighted_symbol == "0"):
                     if not marker_sent:
                         marker = 'S0'
-                        outlet.push_sample([marker], pushthrough=True)
+                        outlet.push_sample([marker])
                     marker_sent = True
                     '''
                     counter_0 = counter_0 + 1
@@ -176,7 +192,7 @@ while running:
                 elif (highlighted_symbol == "1"):
                     if not marker_sent:
                         marker = 'S1'
-                        outlet.push_sample([marker], pushthrough=True)
+                        outlet.push_sample([marker])
                     marker_sent = True
                     '''
                     counter_1 = counter_1 + 1
@@ -187,7 +203,7 @@ while running:
                 elif (highlighted_symbol == "2"):
                     if not marker_sent:
                         marker = 'S2'
-                        outlet.push_sample([marker], pushthrough=True)
+                        outlet.push_sample([marker])
                     marker_sent = True
                     '''
                     counter_2 = counter_2 + 1
@@ -243,35 +259,29 @@ while running:
         marker_sent = False	
         if not marker_sent:
             marker = 'Sbs' #Start of the eye_blinking detection
-            outlet.push_sample([marker], pushthrough=True)
+            outlet.push_sample([marker])
             marker_sent = True
             print("marker is sent")
         # time.sleep(3)
         start_time = time.time()
         time_blink = 0.5
-        # %%
-        # Find the stream by its name and type
-        inlet_name = 'eye_blink_detection_markers'
-        #inlet_name = 'speller_matrix_markers_online'
-        info = resolve_byprop('name', inlet_name)
-
-        # Create an inlet for the first found stream
-        inlet = StreamInlet(info[0])
-
+        elapsed_time = 0
         while elapsed_time <= time_blink:
-            sample, timestamp = inlet.pull_sample()
-            print(sample)
-            if sample is not None:
-                marker = 'Sbe' #End of the eye_blinking detection
-                outlet.push_sample([marker], pushthrough=True)
-                digit_set = digit_set.append(digit)  
+            if inlet is not None:
+                sample, timestamp = inlet.pull_sample()
+                print(sample)
+                if sample is not None:
+                    marker = 'Sbe' #End of the eye_blinking detection
+                    outlet.push_sample([marker])
+                    digit_set = digit_set.append(digit)  
 
 
-                # instruction_number_index = instruction_number_index + 1
-                game_state = 0
-                break
+                    # instruction_number_index = instruction_number_index + 1
+                    game_state = 0
+                    break
             else:
-                print("no connection")
+                # print("no connection")
+                game_state = 0
             end_time = time.time()
             elapsed_time = end_time - start_time
 pygame.quit()
