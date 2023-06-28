@@ -82,7 +82,7 @@ for i in range(len(matrix_symbols)):
 
 ##################################################################################
 # Main game loop
-face = pygame.image.load('face.png')
+face = pygame.image.load(r'C:\Users\April\Desktop\studieren\TUM\SS23\PBSM\Project\git_\PBSM\experimental_design\face.png')
 face_width = face.get_width()
 face_height = face.get_height()
  
