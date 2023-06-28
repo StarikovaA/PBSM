@@ -93,7 +93,7 @@ last_update_time = pygame.time.get_ticks()
 update_interval = 128  # literature said so
 
 # New variables for game state and iteration count
-game_state = 0 #just for testing, otherwise it should be 0
+game_state = 3 #just for testing, otherwise it should be 0
 scene_state = 0
 iteration_count = 0
 counter_task = 0
