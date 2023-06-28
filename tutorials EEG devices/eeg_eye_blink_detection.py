@@ -210,8 +210,6 @@ if __name__ == '__main__':
 
     # Create an inlet for the first found stream
     inlet_markers = StreamInlet(info[0])
-    if 
-    inlet_markers.open_stream()
 
     print("Looking for an EEG stream")
     streams = resolve_stream()
@@ -368,6 +366,7 @@ if __name__ == '__main__':
     plt.show(block=False)
     plt.pause(0.1)
 
+    pbar_closed = True
     # ==================================================================================
     # Single eye blink detection
     # ==================================================================================
@@ -375,9 +374,9 @@ if __name__ == '__main__':
 
     #change this!
     while True:
+
         # Wait to receive a sample from the outlet
         sample, timestamp = inlet.pull_sample()
-
         # Check if a "start looking for eye blinks" (Sbs = blink start) sample has been received
         if sample == 'Sbs':
             # Process the received sample
@@ -402,6 +401,7 @@ if __name__ == '__main__':
                     buffer_size=buffer_size,
                     chunk_size=chunk_size,
                 )
+
 
                 # Processing
                 # ==============================================================================
@@ -508,23 +508,4 @@ if __name__ == '__main__':
                 bm._artists[4].set_data(x_range, thr)
                 bm.update()
                 #print('-----------------------')
-
-
-        # Progress bar
-        # ==============================================================================
-        else:
-            # Get the current number of samples
-            len_buffer = len(timestamps_buffer)
-            # Calculate the progress update value
-            update_val = len_buffer - old_val
-            # Store the current number of samples for the next iteration
-            old_val = len_buffer
-            # Update the progress bar
-            pbar.update(update_val)
-            # If the progress bar is full
-            if len_buffer == buffer_size:
-                # Close the progress bar
-                pbar.close()
-                # Set the flag to get out of the loop
-                pbar_closed = True
 # %%

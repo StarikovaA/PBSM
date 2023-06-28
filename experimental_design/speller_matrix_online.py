@@ -93,7 +93,7 @@ last_update_time = pygame.time.get_ticks()
 update_interval = 128  # literature said so
 
 # New variables for game state and iteration count
-game_state = 0 #just for testing, otherwise it should be 0
+game_state = 3 #just for testing, otherwise it should be 0
 scene_state = 0
 iteration_count = 0
 counter_task = 0
@@ -242,7 +242,7 @@ while running:
         time.sleep(5)	
         if not marker_sent:
             marker = 'Sbs' #Start of the eye_blinking detection
-            outlet.push_sample([marker], time.time(), pushthrough=True)
+            outlet.push_sample([marker], pushthrough=True)
             marker_sent = True
         # time.sleep(3)
         start_time = time.time()
@@ -260,7 +260,7 @@ while running:
             sample, timestamp = inlet.pull_sample()
             if sample is not None:
                 marker = 'Sbe' #End of the eye_blinking detection
-                outlet.push_sample([marker], time.time(), pushthrough=True)
+                outlet.push_sample([marker], pushthrough=True)
                 digit_set = digit_set.append(digit)  
 
 
