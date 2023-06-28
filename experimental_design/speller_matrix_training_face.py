@@ -1,5 +1,5 @@
 # %%
-#%pip install pygame
+
 #If No module named 'pygame', run previous line
 import numpy as np
 import pygame
@@ -41,22 +41,12 @@ print(highlight_number_per_task)
 # Initialize Pygame
 pygame.init()
 
-desired_width_cm = 13.32
-desired_height_cm = 9.98
-
-# Set the screen resolution in pixels
+# Set the screen resolution to fullscreen
 screen_resolution = pygame.display.Info()
-screen_width_px = screen_resolution.current_w
-screen_height_px = screen_resolution.current_h
+window_width_px = screen_resolution.current_w
+window_height_px = screen_resolution.current_h
 
-# Calculate the scaling factor for converting centimeters to pixels
-cm_to_px_scale = min(screen_width_px / desired_width_cm, screen_height_px / desired_height_cm)
-
-# Calculate the window dimensions in pixels
-window_width_px = int(desired_width_cm * cm_to_px_scale)
-window_height_px = int(desired_height_cm * cm_to_px_scale)
-
-window = pygame.display.set_mode((window_width_px, window_height_px))
+window = pygame.display.set_mode((window_width_px, window_height_px), pygame.FULLSCREEN)
 pygame.display.set_caption("P300")
 
 matrix_symbols = ["0", "1", "2"]
@@ -68,15 +58,25 @@ symbol_colors = [
 
 highlighted_color = (255, 255, 255, 255)  # White color for highlighted symbols
 
-horizontal_gap = window_width_px // (len(matrix_symbols) + 1)
-vertical_position = window_height_px // 2
+# Calculate the gap between symbols based on the window width
+horizontal_gap = window_width_px // (len(matrix_symbols) + 2)
+
+# Define the horizontal position for the first symbol (0)
 start_horizontal_position = horizontal_gap
 
-# Define the positions for the symbols
+# Define the vertical position for the symbols (centered vertically)
+vertical_position = window_height_px // 2
+
+# Calculate the positions for the symbols
 symbol_positions = []
 for i in range(len(matrix_symbols)):
     # Calculate the horizontal position for the current symbol
-    horizontal_position = start_horizontal_position + i * horizontal_gap
+    if i == 0:
+        horizontal_position = start_horizontal_position
+    elif i == 1:
+        horizontal_position = window_width_px // 2
+    else:
+        horizontal_position = window_width_px - start_horizontal_position
     # Add the position to the symbol_positions list
     symbol_positions.append((horizontal_position, vertical_position))
 
@@ -141,7 +141,7 @@ while running:
             
             # Draw the symbols on the window
             for symbol, position in zip(matrix_symbols, symbol_positions):
-                font_size = int(0.3 * min(window_width_px, window_height_px))  # Adjust font size based on window size
+                font_size = int(0.18 * min(window_width_px, window_height_px))  # Adjust font size based on window size
                 font = pygame.font.Font(None, font_size)
                 color = symbol_colors[matrix_symbols.index(symbol)]
                 if symbol == highlighted_symbol:
