@@ -71,7 +71,9 @@ start_horizontal_position = horizontal_gap
 #vertical_position = window_height_px // 2
 vertical_position = window_height_px // 2 - number_size // 2
 
-# Calculate the positions for the symbols
+# Calculate the positions for the symbol
+
+#Diagonal position
 '''
 symbol_positions = [
     (number_size, number_size),                  # Position for number 0 (top left corner)
@@ -79,24 +81,14 @@ symbol_positions = [
     (window_width_px - number_size, window_height_px - number_size)  # Posición del número 2 (bottom right corner)
 ]
 '''
+#Horizontal position
 symbol_positions = [
-    (number_size, vertical_position),                  # Position for number 0 (top left corner)
+    (number_size, vertical_position),            # Position for number 0 (top left corner)
     (horizontal_gap, vertical_position),         # Position for number 1 (center)
     (window_width_px - number_size, vertical_position)  # Posición del número 2 (bottom right corner)
 ]
 font = pygame.font.Font(None, number_size)
-'''
-for i in range(len(matrix_symbols)):
-    # Calculate the horizontal position for the current symbol
-    if i == 0:
-        horizontal_position = start_horizontal_position
-    elif i == 1:
-        horizontal_position = window_width_px // 2
-    else:
-        horizontal_position = window_width_px - start_horizontal_position
-    # Add the position to the symbol_positions list
-    symbol_positions.append((horizontal_position, vertical_position))
-'''
+
 ##################################################################################
 # Main game loop
 #face = pygame.image.load('face.png')
@@ -135,8 +127,7 @@ while running:
                 time.sleep(5)
                 scene_state = 1
             elif scene_state == 1:
-                #show_instruction(int(highlight_number_per_task[instruction_number_index]))
-                # Mostrar el caption durante 5 segundos
+                # Show caption during 5 seconds
                 color = (150, 150, 150, 255)  # Light Gray
                 text = font.render("Focus on number " + highlight_number_per_task[instruction_number_index], True, color)
                 text_rect = text.get_rect(center=(window_width_px // 2, window_height_px // 2))
@@ -153,7 +144,7 @@ while running:
                     window.blit(text, text_rect)
                 # Update the display
                 pygame.display.update()
-                time.sleep(1)
+                time.sleep(2)
                 game_state = 1  # Move to the next game state
     elif game_state == 1:
         # Iterate the main game loop 15 times
@@ -185,26 +176,14 @@ while running:
             
             # Draw the symbols on the window
             for symbol, position in zip(matrix_symbols, symbol_positions):
-                #font_size = int(0.18 * min(window_width_px, window_height_px))  # Adjust font size based on window size
-                #font = pygame.font.Font(None, font_size)
                 color = symbol_colors[matrix_symbols.index(symbol)]
-                if symbol == highlighted_symbol:
-                    #text_color = highlighted_color
-                    '''
+                if symbol == highlighted_symbol:                 
                     face_x = position[0] - face_width // 2
                     face_y = position[1] - face_height // 2
                     face_position = (face_x, face_y)
                     window.blit(face, face_position)
-                    '''
-                    text_color = color
-                    text = font.render(symbol, True, text_color) 
-                    text_rect = text.get_rect(center=position)
-                    window.blit(text, text_rect)
+            
                     if symbol == highlight_number_per_task[instruction_number_index]:
-                        face_x = position[0] - face_width // 2
-                        face_y = position[1] - face_height // 2
-                        face_position = (face_x, face_y)
-                        window.blit(face, face_position)
                         marker = 'S10'
                         outlet.push_sample([marker], pushthrough=True)
                     else:
