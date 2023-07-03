@@ -6,15 +6,15 @@ import pygame
 import random
 import time
 from pygame.locals import *
-from pylsl import StreamInfo, StreamOutlet, local_clock
-
+#from q_function import show_instruction
+from pylsl import StreamInfo, StreamInlet, StreamOutlet, resolve_byprop, local_clock
 
 # %%
 # Lab Streaming Layer outlet for markers
 
 # Define the StreamInfo object or METADATA
 info = StreamInfo(
-    name='speller_matrix_markers_training',
+    name='speller_matrix_markers_online',
     type='Markers',
     channel_count=1,
     nominal_srate=500,
@@ -31,6 +31,29 @@ info.__del__()
 outlet.have_consumers()
 #%%
 
+#Create inlet to receive the states from online_pr script
+states_inlet_name = 'online_pr_FSM'
+states_streams_info = resolve_byprop('name', states_inlet_name)
+states_inlet = StreamInlet(states_streams_info[0])
+
+# All the possible properties for marker stream
+print('\nMarker stream info:\n')
+print(f'Name: {states_inlet.info().name()}')
+print(f'Type: {states_inlet.info().type()}')
+print(f'Channel count: {states_inlet.info().channel_count()}')
+print(f'Sampling rate: {states_inlet.info().nominal_srate()}')
+print(f'Channel format: {states_inlet.info().channel_format()}')
+print(f'Source ID: {states_inlet.info().source_id()}')
+print(f'Protocol version: {states_inlet.info().version()}')
+print(f'Stream created at: {states_inlet.info().created_at()}')
+print(f'Unique ID of the outlet: {states_inlet.info().uid()}')
+print(f'Session ID: {states_inlet.info().session_id()}')
+print(f'Host name: {states_inlet.info().hostname()}')
+print(f'Extended description: {states_inlet.info().desc()}')
+# print(f'Stream info in XML format:\n{inlet.info().as_xml()}')
+
+states_inlet.open_stream()
+#%%
 #
 highlight_number_per_task = np.repeat(["0", "1", "2"], 10)
 random.shuffle(highlight_number_per_task)
@@ -125,10 +148,12 @@ while running:
                 pygame.display.update()
                 time.sleep(5)
                 scene_state = 1
+                marker = 'Init'
+                outlet.push_sample([marker], pushthrough=True)
             elif scene_state == 1:
                 # Show caption during 5 seconds
                 color = (150, 150, 150, 255)  # Light Gray
-                text = font.render("Focus on number " + highlight_number_per_task[instruction_number_index], True, color)
+                text = font.render("Focus on the number you want to select", True, color)
                 text_rect = text.get_rect(center=(window_width_px // 2, window_height_px // 2))
                 window.blit(text, text_rect)
                 pygame.display.update()
@@ -143,6 +168,8 @@ while running:
                     window.blit(text, text_rect)
                 # Update the display
                 pygame.display.update()
+                marker = 'StartTask'
+                outlet.push_sample([marker], pushthrough=True)
                 time.sleep(2)
                 game_state = 1  # Move to the next game state
     elif game_state == 1:
@@ -182,11 +209,14 @@ while running:
                     face_position = (face_x, face_y)
                     window.blit(face, face_position)
             
-                    if symbol == highlight_number_per_task[instruction_number_index]:
-                        marker = 'S10'
+                    if symbol == "0":
+                        marker = 'S0'
                         outlet.push_sample([marker], pushthrough=True)
-                    else:
-                        marker = 'S11'
+                    if symbol == "1":
+                        marker = 'S1'
+                        outlet.push_sample([marker], pushthrough=True)
+                    if symbol == "2":
+                        marker = 'S2'
                         outlet.push_sample([marker], pushthrough=True)
                 else:
                     text_color = color
@@ -213,30 +243,36 @@ while running:
             if iteration_count == trials_per_task:
                 game_state = 2
                 iteration_count = 0
-                
-            if (iteration_count % 3 == 0):
-                if (highlighted_symbol == highlight_number_per_task[instruction_number_index]):
-                    last_highlighted_symbol = highlighted_symbol
-                # Draw the symbols on the window with light gray color
-                '''
-                window.fill((0, 0, 0))  # Black
-                for symbol, position in zip(matrix_symbols, symbol_positions):
-                    #font_size = int(0.18 * min(window_width_px, window_height_px))
-                    #font = pygame.font.Font(None, font_size)
-                    color = (150, 150, 150, 255)  # Light Gray
-                    text = font.render(symbol, True, color)
-                    text_rect = text.get_rect(center=position)
-                    window.blit(text, text_rect)
-                # Update the display
-                
-                pygame.display.update()
-                time.sleep(0.4)
-                '''
+        
     elif game_state == 2:
+        time.sleep(2)
+        #Lets online_pr known we already send all number trials
+        marker = 'End'
+        outlet.push_sample([marker], pushthrough=True)
+        
         # Display black screen for 2 seconds
         window.fill((0, 0, 0))  # Black
         pygame.display.update()
+        
+        #Wait until online_pr process data
+        
+        state_sample = "0"
+        #states_inlet.flush()#Remove any residual data from buffer to start a clean acquisition
+        while(state_sample[0] != "S0" and state_sample[0] != "S1" and state_sample[0] != "S2"):
+            state_sample,_ = states_inlet.pull_sample()
         time.sleep(2)
+        
+        #Here we should add blinking confirmation, for now it is implemented with keyboard
+        confirmation = input("Is this the number you selected?: " + state_sample[0])
+        if confirmation == "a":
+            print("Prediction succesful")
+            marker = 'G'#good
+            outlet.push_sample([marker], pushthrough=True)
+        else:
+            print("Try again")
+            marker = 'W'#wrong
+            outlet.push_sample([marker], pushthrough=True)
+        
         game_state = 3
         
     elif game_state == 3:
