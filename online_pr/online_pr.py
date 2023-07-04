@@ -86,6 +86,16 @@ class States(Enum):
     WAIT_BLINK_CONFIRMATION = 5
     END = 6
     
+def find_nearest_indices(arr1, arr2):
+    indices = []
+    for value in arr1:
+        abs_diff = np.abs(arr2 - value)
+        nearest_index = np.argmin(abs_diff) #The minimum absolute value between the arrays is calculated. For example if arr2 has elements 454 and 456 and value is 455, 
+                                            #the subtraction abs(454-455) = 1 and abs(456-455) = 1, how then select only one of them? np.argmin() returns only the index of 
+                                            #the first minimum found in case there are several minimum values ​​in the array.
+        indices.append(nearest_index)
+    return indices
+    
 # %%
 sampling_rate = eeg_inlet.info().nominal_srate()
 
@@ -99,6 +109,11 @@ loaded_model = joblib.load(file_path)# Load the model
 
 STATE = States.IDLE
 keyboard = '0'
+eeg_samples = []
+eeg_timestamps = []
+marker_samples = []
+marker_timestamps = []
+corrected_marker_timestamps = []
 
 while(True):
     if STATE == States.IDLE:
@@ -106,6 +121,23 @@ while(True):
         if (marker_sample[0] == "Init"):
             STATE = States.ACQUISITION
     if STATE == States.ACQUISITION:
+        if eeg_inlet.samples_available():
+            eeg_sample, eeg_timestamp = eeg_inlet.pull_sample()
+            eeg_samples.append(eeg_sample)
+            eeg_timestamps.append(eeg_timestamp)
+            if marker_inlet.samples_available():
+                marker_sample, marker_timestamp = marker_inlet.pull_sample()
+                # Compute latency between timestamps
+                latency = eeg_timestamp - marker_timestamp
+                # Adjust marker timestamp so it match with eeg timestamps
+                corrected_marker_timestamp = marker_timestamp + latency
+                marker_samples.append(marker_sample)
+                marker_timestamps.append(marker_timestamp)
+                corrected_marker_timestamps.append(corrected_marker_timestamp)
+                if  marker_sample[0] == "End":
+                    receive_data_flag = False
+                    STATE = States.PROCESSING
+        '''
         # Continuously receive and process data
         eeg_samples = []
         eeg_timestamps = []
@@ -134,6 +166,7 @@ while(True):
                     if  marker_sample[0] == "End":
                         receive_data_flag = False
                         STATE = States.PROCESSING
+        '''
         '''               
         eeg_sample, eeg_timestamp = eeg_inlet.pull_sample()
         eeg_samples.append(eeg_sample)
@@ -189,22 +222,24 @@ while(True):
         markers_S1_idx = np.where(marker_samples == "S1")[0]
         markers_S2_idx = np.where(marker_samples == "S2")[0]
         
-        timestamps_S0 = corrected_marker_timestamps[markers_S0_idx]
-        timestamps_S1 = corrected_marker_timestamps[markers_S1_idx]
-        timestamps_S2 = corrected_marker_timestamps[markers_S2_idx]
-        
-        eeg_timestamps_marker_S0 = np.where(np.isin(eeg_timestamps, timestamps_S0))[0]
-        eeg_timestamps_marker_S1 = np.where(np.isin(eeg_timestamps, timestamps_S1))[0]
-        eeg_timestamps_marker_S2 = np.where(np.isin(eeg_timestamps, timestamps_S2))[0]
-        
+        timestamps_S0 = np.take(marker_timestamps, markers_S0_idx)
+        timestamps_S1 = np.take(marker_timestamps, markers_S1_idx)
+        timestamps_S2 = np.take(marker_timestamps, markers_S2_idx)
+        #timestamps_S0 = marker_timestamps[markers_S0_idx]
+        #timestamps_S1 = marker_timestamps[markers_S1_idx]
+        #timestamps_S2 = marker_timestamps[markers_S2_idx]
+
+        eeg_timestamps_marker_S0 = find_nearest_indices(timestamps_S0,eeg_timestamps)
+        eeg_timestamps_marker_S1 = find_nearest_indices(timestamps_S1,eeg_timestamps)
+        eeg_timestamps_marker_S2 = find_nearest_indices(timestamps_S2,eeg_timestamps)
+
+
         game_trials = len(eeg_timestamps_marker_S0)
-        
+
         tmin = 0
         tmax = 1
         tmin_samples = np.abs(int(tmin*int(sampling_rate)))
         tmax_samples = np.abs(int(tmax*int(sampling_rate)))
-        tmin_baseline = -0.2  # Tiempo de inicio de la línea de base en segundos
-        tmax_baseline = 0.0  # Tiempo de finalización de la línea de base en segundos
 
         epochs_S0 = []
         epochs_S1 = []
@@ -213,7 +248,7 @@ while(True):
             epochs_S0.append(eeg_samples_filter[:,eeg_timestamps_marker_S0[game_trial]:eeg_timestamps_marker_S0[game_trial] + tmax_samples])
             epochs_S1.append(eeg_samples_filter[:,eeg_timestamps_marker_S1[game_trial]:eeg_timestamps_marker_S1[game_trial] + tmax_samples])
             epochs_S2.append(eeg_samples_filter[:,eeg_timestamps_marker_S2[game_trial]:eeg_timestamps_marker_S2[game_trial] + tmax_samples])
-        
+
         epochs_S0 = np.array(epochs_S0)
         epochs_S1 = np.array(epochs_S1)
         epochs_S2 = np.array(epochs_S2)
@@ -225,8 +260,8 @@ while(True):
 
         #Select a window to look for maximum and get the indexes
         time = np.arange(tmin,tmax,1/int(sampling_rate))
-        lower_time_window = 0.250
-        upper_time_window = 0.305
+        lower_time_window = 0.310
+        upper_time_window = 0.370
         lower_idx = np.where(time >= lower_time_window)[0][0]
         upper_idx = np.where(time <= upper_time_window)[0][-1]
         
@@ -264,10 +299,28 @@ while(True):
         STATE = States.END
     if STATE == States.END:
         if marker_sample[0] == "G":
+            eeg_samples = []
+            eeg_timestamps = []
+            marker_samples = []
+            marker_timestamps = []
+            corrected_marker_timestamps = []
             STATE = States.ACQUISITION
         else:
             break
 # %%
+plt.plot(time,avg_marker_S0[21,:],color='lightgreen')
+plt.plot(time,avg_marker_S1[21,:],color='red')
+plt.plot(time,avg_marker_S2[21,:],color='black')
+legend_labels = ['0', '1', '2']
+plt.legend(legend_labels)
+plt.show()
+
+# %%
+time
+
+#%%
+
+
 eeg_timestamps_marker_S0 = eeg_timestamps_marker_S0 - 500
 eeg_timestamps_marker_S1 = eeg_timestamps_marker_S1 - 500
 eeg_timestamps_marker_S2 = eeg_timestamps_marker_S2 - 500
