@@ -27,6 +27,41 @@ from tqdm import tqdm
 from pylsl import StreamInlet, resolve_byprop
 
 
+# global parameters
+
+# Set the buffer sizes
+buffer_size = 1000 #was 5000 before
+chunk_size = 500
+
+# Length of the baseline for the peak detection
+len_base = 600
+
+# Length of the window for the peak detection
+#len_win = 150
+len_win = 300
+
+# Length of the space between the baseline and the activity window
+len_space = 100
+
+# Define the delay of the windows
+# delay = 0
+delay = 100
+
+# Define the baseline window
+base_begin = -len_win - delay - len_base - len_space
+base_end = -delay - len_win - len_space
+
+# Define the eye blink detection window
+activity_begin = -len_win - delay
+activity_end = -delay
+
+
+# Set the axis limits
+y_min = -500
+y_max = 500
+x_min = 0
+x_max = buffer_size
+
 
 # %%
 class BlitManager:
@@ -299,32 +334,6 @@ def eye_blink_detection(wait_time):
     samples_buffer = []
     timestamps_buffer = []
 
-    # Set the buffer sizes
-    buffer_size = 5000
-    chunk_size = 500
-
-    # Length of the baseline for the peak detection
-    len_base = 600
-
-    # Length of the window for the peak detection
-    #len_win = 150
-    len_win = 300
-
-    # Length of the space between the baseline and the activity window
-    len_space = 100
-
-    # Define the delay of the windows
-    # delay = 0
-    delay = 100
-
-    # Define the baseline window
-    base_begin = -len_win - delay - len_base - len_space
-    base_end = -delay - len_win - len_space
-
-    # Define the eye blink detection window
-    activity_begin = -len_win - delay
-    activity_end = -delay
-
     # Variables for the calibration
     pbar = tqdm(desc='Calibration', total=buffer_size)
     pbar_closed = False
@@ -349,12 +358,6 @@ def eye_blink_detection(wait_time):
     # PLOTTING
     # ==================================================================================
 
-    # Set the axis limits
-    y_min = -500
-    y_max = 500
-    x_min = 0
-    x_max = buffer_size
-
     # Define the subplot titles
     title1 = f'Band-Pass Filtered Channel {ch}'
     title2 = f'Moving Average Smoothened Channel {ch} (N={N})'
@@ -373,7 +376,8 @@ def eye_blink_detection(wait_time):
     plt.show(block=False)
     plt.pause(0.1)
 
-    pbar_closed = True
+    # pbar_closed = True
+
     # ==================================================================================
     # Single eye blink detection
     # ==================================================================================
@@ -486,7 +490,24 @@ def eye_blink_detection(wait_time):
                 if refract_counter >= len_win + len_space + len_base + 100:
                     refractory_period = False
                 ########################################################################
-        
+
+        # Progress bar for calibration
+        # ==============================================================================
+        else:
+            # Get the current number of samples
+            len_buffer = len(timestamps_buffer)
+            # Calculate the progress update value
+            update_val = len_buffer - old_val
+            # Store the current number of samples for the next iteration
+            old_val = len_buffer
+            # Update the progress bar
+            pbar.update(update_val)
+            # If the progress bar is full
+            if len_buffer == buffer_size:
+                # Close the progress bar
+                pbar.close()
+                # Set the flag to get out of the loop
+                pbar_closed = True
         '''
         while True:
             # Wait to receive a sample from the outlet
