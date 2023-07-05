@@ -6,6 +6,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 from enum import Enum
 import joblib
+from eye_bklinking_detection/eeg_eye_blink_detection
 
 matplotlib.use('TkAgg')
 # %%
@@ -229,10 +230,12 @@ while(True):
     if STATE == States.WAIT_BLINK_CONFIRMATION:
         marker_sample = "0"
         #marker_inlet.flush()#Remove any residual data from buffer to start a clean acquisition
-        while(marker_sample[0] != "Blink"):
+        while(marker_sample[0] != "Calibration"):
             marker_sample,_ = marker_inlet.pull_sample()
-        blink_flag = False
         #Blinking function
+        eye_blink_detection(10)
+
+        
         #Send yes or no
         marker = "S0"
         if (blink_flag):

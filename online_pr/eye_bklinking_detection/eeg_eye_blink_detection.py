@@ -363,18 +363,18 @@ def eye_blink_detection(wait_time):
     title2 = f'Moving Average Smoothened Channel {ch} (N={N})'
 
     # Create an empty figure
-    fig = plt.figure()
-    bm = BlitManager(fig)
-    new_subplot(fig, bm, title=title1)
-    new_subplot(fig, bm, title=title2)
+    #fig = plt.figure()
+    #bm = BlitManager(fig)
+    #new_subplot(fig, bm, title=title1)
+    #new_subplot(fig, bm, title=title2)
 
     # Define what will happen when the figure is closed
     # fig.canvas.mpl_connect('close_event', on_close)
     # Variable to keep track of the closing of the matplotlib figure
     figure_closed = False
 
-    plt.show(block=False)
-    plt.pause(0.1)
+    #plt.show(block=False)
+    #plt.pause(0.1)
 
     # pbar_closed = True
 
@@ -528,7 +528,8 @@ def eye_blink_detection(wait_time):
     # return False if no eye-blinking occured during the time defined by wait_time
     return False
 
-    
+    '''
+
     # Plotting
     # ==========================================================================
     # If there are new samples in the buffer
@@ -545,7 +546,7 @@ def eye_blink_detection(wait_time):
         bm._artists[4].set_data(x_range, thr)
         bm.update()
         #print('-----------------------')
+    '''
         
-        
-#print(eye_blink_detection(10))
+print(eye_blink_detection(10))
 # %%
