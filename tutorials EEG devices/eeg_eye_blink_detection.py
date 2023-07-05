@@ -202,8 +202,13 @@ def new_subplot(fig, bm, title=None, color='navy', lw=2):
 
 
 # %%
-if __name__ == '__main__':
-    
+# if __name__ == '__main__':
+
+def eye_blink_detection(wait_time):
+
+    start_time = time()
+    current_time = start_time()
+
     # Find the stream by its name and type
     inlet_name = 'speller_matrix_markers_online'
     info = resolve_byprop('name', inlet_name)
@@ -372,8 +377,9 @@ if __name__ == '__main__':
     # ==================================================================================
     # Enter the endless loop
     #change this!
-    while True:
+    while current_time - start_time <= wait_time:
 
+        '''
         # Wait to receive a sample from the outlet
         sample, timestamp = inlet.pull_sample()
         print(sample, timestamp)
@@ -383,129 +389,136 @@ if __name__ == '__main__':
             marker = sample[0]
             print(f"Received marker: {marker}")
             looking_for_blinks = True
+        '''
+
+            #while looking_for_blinks:
+        # If the matplotlib figure is closed
+        if figure_closed:
+            # Break out of the loop
+            break
 
 
-            while looking_for_blinks:
-                # If the matplotlib figure is closed
-                if figure_closed:
-                    # Break out of the loop
-                    break
+        # Get the EEG samples, time stamps and the index that tells from which
+        # point on the new samples have been appended to the buffer
+        samples_buffer, timestamps_buffer, n_new_samples = receive_eeg_samples(
+            inlet,
+            samples_buffer,
+            timestamps_buffer,
+            buffer_size=buffer_size,
+            chunk_size=chunk_size,
+        )
 
 
-                # Get the EEG samples, time stamps and the index that tells from which
-                # point on the new samples have been appended to the buffer
-                samples_buffer, timestamps_buffer, n_new_samples = receive_eeg_samples(
-                    inlet,
-                    samples_buffer,
-                    timestamps_buffer,
-                    buffer_size=buffer_size,
-                    chunk_size=chunk_size,
-                )
+        # Processing
+        # ==============================================================================
+        # Check if the calibration is over
+        if pbar_closed:
+            ############################################################################
+            # TODO: Band-pass filter the data
+            # Tip: filter_data from MNE
+            sfreq = 250 #from lsl_inlet.py
+            l_freq = 1
+            h_freq = 40 #or 40
+            filt_data = mne.filter.filter_data(np.array(samples_buffer).T, sfreq, l_freq, h_freq)
+            #filt_data = np.array(samples_buffer).T
+            ############################################################################
 
+            ############################################################################
+            # TODO: Smoothen the filtered signal with a moving average filter
+            # Tip: uniform_filter1d
+            moving_average = np.array(uniform_filter1d(filt_data,N)).T
+            #print(np.array(moving_average).shape)
+            ############################################################################
 
-                # Processing
-                # ==============================================================================
-                # Check if the calibration is over
-                if pbar_closed:
-                    ############################################################################
-                    # TODO: Band-pass filter the data
-                    # Tip: filter_data from MNE
-                    sfreq = 250 #from lsl_inlet.py
-                    l_freq = 1
-                    h_freq = 40 #or 40
-                    filt_data = mne.filter.filter_data(np.array(samples_buffer).T, sfreq, l_freq, h_freq)
-                    #filt_data = np.array(samples_buffer).T
-                    ############################################################################
-
-                    ############################################################################
-                    # TODO: Smoothen the filtered signal with a moving average filter
-                    # Tip: uniform_filter1d
-                    moving_average = np.array(uniform_filter1d(filt_data,N)).T
-                    #print(np.array(moving_average).shape)
-                    ############################################################################
-
-                    if not refractory_period:
-                        ########################################################################
-                        # TODO: Implement the condition for peak detection
+            if not refractory_period:
+                ########################################################################
+                # TODO: Implement the condition for peak detection
+        
+                #Get mean and std from baseline window
+                baseline_window = np.array(moving_average)[base_begin:base_end,idx]
+                #print(np.array(baseline_window).shape)
+                baseline_mean = np.mean(baseline_window)
+                baseline_std = np.std(baseline_window)
+                c = 7 #later find right value for the factor c
+                thr = baseline_mean + c*baseline_std
+                #print(thr)
                 
-                        #Get mean and std from baseline window
-                        baseline_window = np.array(moving_average)[base_begin:base_end,idx]
-                        #print(np.array(baseline_window).shape)
-                        baseline_mean = np.mean(baseline_window)
-                        baseline_std = np.std(baseline_window)
-                        c = 7 #later find right value for the factor c
-                        thr = baseline_mean + c*baseline_std
-                        #print(thr)
-                        
-                        #print(np.shape(samples_buffer))
-                        #print(activity_end- activity_begin)
-                        activity_window = np.asarray(moving_average)[activity_begin:activity_end,idx]
-                        #print(np.shape(activity_window))
-                        max_activity = max(activity_window)
-                        #print(max_activity)
-                        #print(thr)
-                        if max_activity <= thr:
-                            detect_condition = 0
-                        elif max_activity > thr:
-                            detect_condition = 1
-                        
-                        ########################################################################
+                #print(np.shape(samples_buffer))
+                #print(activity_end- activity_begin)
+                activity_window = np.asarray(moving_average)[activity_begin:activity_end,idx]
+                #print(np.shape(activity_window))
+                max_activity = max(activity_window)
+                #print(max_activity)
+                #print(thr)
+                if max_activity <= thr:
+                    detect_condition = 0
+                elif max_activity > thr:
+                    detect_condition = 1
+                
+                ########################################################################
 
-                        if detect_condition:
-                            # Send the time markers
-                            stream_blink.push_sample(['blink-' + str(time())])
-                            marker_list.append('blink-' + str(time()))
+                if detect_condition:
+                    # Send the time markers
+                    stream_blink.push_sample(['blink-' + str(time())])
+                    marker_list.append('blink-' + str(time()))
 
-                            # Increment the counter
-                            blink_counter += 1
+                    # Increment the counter
+                    blink_counter += 1
 
-                            print(f'PEAK #{blink_counter} DETECTED')
+                    print(f'PEAK #{blink_counter} DETECTED')
+                
+                    # Start the refractory period
+                    refract_counter = 1
+                    refractory_period = True
 
-                            # Start the refractory period
-                            refract_counter = 1
-                            refractory_period = True
+                    # return True if an eye-blinking was detected
+                    return True
+            else:
+                ########################################################################
+                # TODO: Implement refractory period and how to get out of it
+                if n_new_samples > 0:
+                    #print(n_new_samples)
+                    #print(refract_counter)
+                    refract_counter += n_new_samples
+                    #print(len_win + len_space)
+                if refract_counter >= len_win + len_space + len_base + 100:
+                    refractory_period = False
+                ########################################################################
+        
+        '''
+        while True:
+            # Wait to receive a sample from the outlet
+            sample, timestamp = inlet.pull_sample()
 
-                    else:
-                        ########################################################################
-                        # TODO: Implement refractory period and how to get out of it
-                        if n_new_samples > 0:
-                            #print(n_new_samples)
-                            #print(refract_counter)
-                            refract_counter += n_new_samples
-                            #print(len_win + len_space)
-                        if refract_counter >= len_win + len_space + len_base + 100:
-                            refractory_period = False
-                        ########################################################################
-                while True:
-                    # Wait to receive a sample from the outlet
-                    sample, timestamp = inlet.pull_sample()
+            # Check if a "stop blink detection" (Sbe = blink end) sample has been received
+            if sample[0] == 'Sbe':
+                # Process the received sample
+                marker = sample[0]
+                print(f"Received marker: {marker}")
 
-                    # Check if a "stop blink detection" (Sbe = blink end) sample has been received
-                    if sample[0] == 'Sbe':
-                        # Process the received sample
-                        marker = sample[0]
-                        print(f"Received marker: {marker}")
+                #In this case, end the loop looking for eye blinks
+                looking_for_blinks = False
+                break
+        '''
+        current_time = time()
 
-                        #In this case, end the loop looking for eye blinks
-                        looking_for_blinks = False
-                        break
+    # return False if no eye-blinking occured during the time defined by wait_time
+    return False
 
-
-
-            # Plotting
-            # ==========================================================================
-            # If there are new samples in the buffer
-            if n_new_samples > 0:
-                # Update the artists (lines) in the subplots
-                x_range = range(len(samples_buffer))
-                #print('shape filt_data')
-                #print(np.shape(filt_data))
-                bm._artists[0].set_data(x_range, np.array(filt_data).T[:,idx])
-                bm._artists[1].set_data(x_range, thr)
-                #print(thr, refractory_period)
-                #print('shape moving_average', np.shape(moving_average))
-                bm._artists[3].set_data(x_range, moving_average[:,idx])
-                bm._artists[4].set_data(x_range, thr)
-                bm.update()
-                #print('-----------------------')
+    # Plotting
+    # ==========================================================================
+    # If there are new samples in the buffer
+    if n_new_samples > 0:
+        # Update the artists (lines) in the subplots
+        x_range = range(len(samples_buffer))
+        #print('shape filt_data')
+        #print(np.shape(filt_data))
+        bm._artists[0].set_data(x_range, np.array(filt_data).T[:,idx])
+        bm._artists[1].set_data(x_range, thr)
+        #print(thr, refractory_period)
+        #print('shape moving_average', np.shape(moving_average))
+        bm._artists[3].set_data(x_range, moving_average[:,idx])
+        bm._artists[4].set_data(x_range, thr)
+        bm.update()
+        #print('-----------------------')
 # %%
