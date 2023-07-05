@@ -272,36 +272,50 @@ while running:
         digit = state_sample[0]
         
         #Here we should add blinking confirmation, for now it is implemented with keyboard
+        window.fill((0, 0, 0))  # Black
+        pygame.display.update()
         color = (150, 150, 150, 255)  # Light Gray
-        text = font.render("Wait for calibration...")
+        text = font.render("Wait for calibration...", True, color)
         text_rect = text.get_rect(center=(window_width_px // 2, window_height_px // 2))
         window.blit(text, text_rect)
         pygame.display.update()
         marker = 'Calibration'
         outlet.push_sample([marker], pushthrough=True) 
         time.sleep(2)
+        window.fill((0, 0, 0))  # Black
+        pygame.display.update()
         color = (150, 150, 150, 255)  # Light Gray
-        text = font.render("Is this the number you selected?: " + state_sample[0]+' Blink, if Yes.', True, color)
+        text = font.render("Is this the number you selected?: " + digit +' Blink, if Yes.', True, color)
         text_rect = text.get_rect(center=(window_width_px // 2, window_height_px // 2))
         window.blit(text, text_rect)
         pygame.display.update()            
         # marker = 'Blink'
-        # outlet.push_sample([marker], pushthrough=True)    
+        # outlet.push_sample([marker], pushthrough=True)
+        state_sample,_ = states_inlet.pull_sample() 
         while(state_sample[0] != "Yes" and state_sample[0] != "No"):
             state_sample,_ = states_inlet.pull_sample()
+            print(state_sample[0])
         time.sleep(1)
         if state_sample[0] == "Yes":
+            window.fill((0, 0, 0))  # Black
+            pygame.display.update()
             chosen_number.append(digit)
             color = (150, 150, 150, 255)  # Light Gray
-            text = font.render("Now your selected numbers are: " + chosen_number, True, color)
+            text = font.render(f"Now your selected numbers are: {chosen_number}", True, color)
             text_rect = text.get_rect(center=(window_width_px // 2, window_height_px // 2))
             window.blit(text, text_rect)
             pygame.display.update()
+            window.fill((0, 0, 0))  # Black
+            pygame.display.update()
         else:
+            window.fill((0, 0, 0))  # Black
+            pygame.display.update()
             color = (150, 150, 150, 255)  # Light Gray
             text = font.render("Failed detection. Try again", True, color)
             text_rect = text.get_rect(center=(window_width_px // 2, window_height_px // 2))
             window.blit(text, text_rect)
+            pygame.display.update()
+            window.fill((0, 0, 0))  # Black
             pygame.display.update()
         if len(chosen_number) ==3:
             game_state = 4

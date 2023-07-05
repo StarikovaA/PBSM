@@ -6,9 +6,10 @@ import matplotlib
 import matplotlib.pyplot as plt
 from enum import Enum
 import joblib
-from eye_bklinking_detection/eeg_eye_blink_detection
+from eye_bklinking_detection.eeg_eye_blink_detection import eye_blink_detection
 
 matplotlib.use('TkAgg')
+
 # %%
 # Find the streams by its name
 eeg_inlet_name = 'EEG'
@@ -200,14 +201,14 @@ while(True):
         upper_time_window = 0.370
         lower_idx = np.where(time >= lower_time_window)[0][0]
         upper_idx = np.where(time <= upper_time_window)[0][-1]
-        
+        '''
         plt.plot(time,avg_marker_S0[21,:],color='lightgreen')
         plt.plot(time,avg_marker_S1[21,:],color='red')
         plt.plot(time,avg_marker_S2[21,:],color='black')
         legend_labels = ['0', '1', '2']
         plt.legend(legend_labels)
         plt.show()
-
+        '''
         feature_1_S0 = np.max(avg_marker_S0[:, lower_idx:upper_idx], axis=1)#Get the maximum amplitude for each average non event trial per task in the given range and store it in the feature vector
         feature_1_S1 = np.max(avg_marker_S1[:, lower_idx:upper_idx], axis=1)#Get the maximum amplitude for each average non event trial per task in the given range and store it in the feature vector
         feature_1_S2 = np.max(avg_marker_S2[:, lower_idx:upper_idx], axis=1)#Get the maximum amplitude for each average non event trial per task in the given range and store it in the feature vector
@@ -233,8 +234,10 @@ while(True):
         while(marker_sample[0] != "Calibration"):
             marker_sample,_ = marker_inlet.pull_sample()
         #Blinking function
-        eye_blink_detection(10)
-
+        print(1)
+        blink_flag = False
+        blink_flag = eye_blink_detection(10)
+        print(blink_flag)
         
         #Send yes or no
         marker = "S0"
@@ -249,7 +252,9 @@ while(True):
     if STATE == States.END:
         marker_sample = "0"
         #marker_inlet.flush()#Remove any residual data from buffer to start a clean acquisition
-        while(marker_sample[0] != "Finish"):
+        marker_sample,_ = marker_inlet.pull_sample()
+        print(marker_sample[0])
+        while(marker_sample[0] != "Finish" and marker_sample[0] != "NotFinish"):
             marker_sample,_ = marker_inlet.pull_sample()
         if marker_sample[0] == "Finish":
             break

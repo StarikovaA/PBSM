@@ -252,11 +252,12 @@ def eye_blink_detection(wait_time):
     # Create an inlet for the first found stream
     inlet_markers = StreamInlet(info[0])
     '''
-    
+
+    inlet_name = 'EEG'
     print("Looking for an EEG stream")
-    streams = resolve_stream()
+    info = resolve_byprop('name', inlet_name)
     print("Found one")
-    inlet = StreamInlet(streams[0])
+    inlet = StreamInlet(info[0],max_buflen=500, max_chunklen=500)
     print("Connected to the inlet")
 
     # Supress MNE messages and only show warnings
@@ -547,6 +548,5 @@ def eye_blink_detection(wait_time):
         bm.update()
         #print('-----------------------')
     '''
-        
-print(eye_blink_detection(10))
+
 # %%
