@@ -528,7 +528,6 @@ def eye_blink_detection(wait_time):
     # return False if no eye-blinking occured during the time defined by wait_time
     return False
 
-    
     # Plotting
     # ==========================================================================
     # If there are new samples in the buffer
@@ -547,5 +546,5 @@ def eye_blink_detection(wait_time):
         #print('-----------------------')
         
         
-#print(eye_blink_detection(10))
+print(eye_blink_detection(10))
 # %%
