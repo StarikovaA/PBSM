@@ -197,18 +197,18 @@ while(True):
 
         #Select a window to look for maximum and get the indexes
         time = np.arange(tmin,tmax,1/int(sampling_rate))
-        lower_time_window = 0.310
-        upper_time_window = 0.370
+        lower_time_window = 0.200
+        upper_time_window = 0.350
         lower_idx = np.where(time >= lower_time_window)[0][0]
         upper_idx = np.where(time <= upper_time_window)[0][-1]
-        '''
+        
         plt.plot(time,avg_marker_S0[21,:],color='lightgreen')
         plt.plot(time,avg_marker_S1[21,:],color='red')
         plt.plot(time,avg_marker_S2[21,:],color='black')
         legend_labels = ['0', '1', '2']
         plt.legend(legend_labels)
         plt.show()
-        '''
+        
         feature_1_S0 = np.max(avg_marker_S0[:, lower_idx:upper_idx], axis=1)#Get the maximum amplitude for each average non event trial per task in the given range and store it in the feature vector
         feature_1_S1 = np.max(avg_marker_S1[:, lower_idx:upper_idx], axis=1)#Get the maximum amplitude for each average non event trial per task in the given range and store it in the feature vector
         feature_1_S2 = np.max(avg_marker_S2[:, lower_idx:upper_idx], axis=1)#Get the maximum amplitude for each average non event trial per task in the given range and store it in the feature vector
@@ -219,13 +219,26 @@ while(True):
         best_feature_1_S2 = feature_1_S2[best_features_idx]
         feature_vector = [best_feature_1_S0, best_feature_1_S1, best_feature_1_S2]
         
+        prediction_prob = loaded_model.predict_proba(feature_vector)
         prediction = loaded_model.predict(feature_vector)
-        number_select = np.where(prediction == 1)[0]
+        prediction_idx = np.where(prediction == 1)[0]
+        
+        
         print(prediction[0])
         print(prediction[1])
         print(prediction[2])
+        all_non_event = np.where(prediction == -1)[0]
+        if(len(all_non_event) == 3):
+            digit = 1
+        else:
+            prediction_max_prob_idx = np.argmax(prediction_prob[prediction_idx][:,1])
+            print("prediction_max_prob_idx: ", prediction_max_prob_idx)
+            digit = prediction_idx[prediction_max_prob_idx]
+            print("digit 1: ", prediction_max_prob_idx)
+        
+        print("digit 2: ", digit)
 
-        marker = "0"
+        marker = str(digit)
         outlet.push_sample([marker], pushthrough=True)
         STATE = States.WAIT_BLINK_CONFIRMATION
     if STATE == States.WAIT_BLINK_CONFIRMATION:
@@ -234,7 +247,6 @@ while(True):
         while(marker_sample[0] != "Calibration"):
             marker_sample,_ = marker_inlet.pull_sample()
         #Blinking function
-        print(1)
         blink_flag = False
         blink_flag = eye_blink_detection(10)
         print(blink_flag)

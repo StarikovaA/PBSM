@@ -267,6 +267,7 @@ while running:
         
         state_sample = "10"
         #states_inlet.flush()#Remove any residual data from buffer to start a clean acquisition
+        state_sample,_ = states_inlet.pull_sample()
         while(state_sample[0] != "0" and state_sample[0] != "1" and state_sample[0] != "2"):
             state_sample,_ = states_inlet.pull_sample()
         digit = state_sample[0]
@@ -305,6 +306,7 @@ while running:
             text_rect = text.get_rect(center=(window_width_px // 2, window_height_px // 2))
             window.blit(text, text_rect)
             pygame.display.update()
+            time.sleep(2)
             window.fill((0, 0, 0))  # Black
             pygame.display.update()
         else:
@@ -315,6 +317,7 @@ while running:
             text_rect = text.get_rect(center=(window_width_px // 2, window_height_px // 2))
             window.blit(text, text_rect)
             pygame.display.update()
+            time.sleep(1)
             window.fill((0, 0, 0))  # Black
             pygame.display.update()
         if len(chosen_number) ==3:
@@ -325,13 +328,15 @@ while running:
     elif game_state == 3:
         instruction_number_index = instruction_number_index + 1
         game_state = 0
+        marker = 'NotFinish'
+        outlet.push_sample([marker], pushthrough=True)
     elif game_state == 4:
         # call_x = 
         # call_y = 
         call_position = call.get_rect(center=(window_width_px // 2, window_height_px // 2))
         window.blit(call, call_position)
         pygame.display.update()
-        time.sleep(0.5)
+        time.sleep(3)
         marker = 'Finish'
         outlet.push_sample([marker], pushthrough=True)
         break

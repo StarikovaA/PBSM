@@ -239,295 +239,303 @@ def new_subplot(fig, bm, title=None, color='navy', lw=2):
 # %%
 
 
-def eye_blink_detection(wait_time):
 
-    start_time = time()
-    current_time = start_time
+start_time = time()
+current_time = start_time
+
+'''
+# Find the stream by its name and type
+inlet_name = 'speller_matrix_markers_online'
+info = resolve_byprop('name', inlet_name)
+
+# Create an inlet for the first found stream
+inlet_markers = StreamInlet(info[0])
+'''
+
+print("Looking for an EEG stream")
+streams = resolve_stream()
+print("Found one")
+inlet = StreamInlet(streams[0])
+print("Connected to the inlet")
+
+# Supress MNE messages and only show warnings
+mne.set_log_level(verbose='WARNING')
+
+# Set the channel names
+# ch_names = ['Fz', 'C3', 'Cz', 'C4', 'Pz', 'PO7', 'Oz', 'PO8']  # UHB
+ch_names = [
+    'Fp1',
+    'Fp2',
+    'Fz',
+    'F7',
+    'F8',
+    'FC1',
+    'FC2',
+    'Cz',
+    'C3',
+    'C4',
+    'T7',
+    'T8',
+    'CPz',
+    'CP1',
+    'CP2',
+    'CP5',
+    'CP6',
+    'M1',
+    'M2',
+    'Pz',
+    'P3',
+    'P4',
+    'O1',
+    'O2',
+]  # Smarting
+
+# Sampling rate of the Unicorn Hybrid Black
+sfreq = 250  # Hz
+
+# Define the frequencies for the notch filter
+uhb_notch_freqs = np.arange(50, 101, 50)
+
+# Define the band-pass cutoff frequencies
+flow, fhigh = 1, 30
+
+# Create the info structure needed by MNE
+info = mne.create_info(ch_names, sfreq, 'eeg')
+# Add the system name to the info
+# info['description'] = 'Unicorn Hybrid Black'
+info['description'] = 'Smarting 24'
+
+# Create the outlet stream information
+info_blink = StreamInfo(
+    name='eye_blink_detection_markers',
+    type='Markers',
+    channel_count=1,
+    nominal_srate=0,
+    channel_format='string',
+    source_id='eye_blink_detection_markers',
+)
+info_eeg = StreamInfo(
+    name='filtered_data_stream',
+    type='eeg',
+    channel_count=24,
+    channel_format='float32',
+    source_id='smarting',
+)
+
+# Create the outlet to send data
+stream_blink = StreamOutlet(info_blink)
+stream_eeg = StreamOutlet(info_eeg)
+
+# Initialize the marker list
+marker_list = []
+
+# Initalize the buffers
+samples_buffer = []
+timestamps_buffer = []
+
+# Variables for the calibration
+pbar = tqdm(desc='Calibration', total=buffer_size)
+pbar_closed = False
+old_val = 0
+
+####################################################################################
+# TODO: Define all necessary variables
+
+# Set the channel index (to a frontal channel)
+idx = 1
+ch = ch_names[idx]
+
+# Define the length of the moving average filter (arbitrary)
+N = 20
+
+# Initalize the values for the refractory period
+refractory_period = False
+blink_counter = 0
+####################################################################################
+
+# ==================================================================================
+# PLOTTING
+# ==================================================================================
+
+# Define the subplot titles
+title1 = f'Band-Pass Filtered Channel {ch}'
+title2 = f'Moving Average Smoothened Channel {ch} (N={N})'
+
+# Create an empty figure
+fig = plt.figure()
+bm = BlitManager(fig)
+new_subplot(fig, bm, title=title1)
+new_subplot(fig, bm, title=title2)
+
+# Define what will happen when the figure is closed
+# fig.canvas.mpl_connect('close_event', on_close)
+# Variable to keep track of the closing of the matplotlib figure
+figure_closed = False
+
+plt.show(block=False)
+plt.pause(0.1)
+
+# pbar_closed = True
+
+# ==================================================================================
+# Single eye blink detection
+# ==================================================================================
+# Enter the endless loop
+#change this!
+while (True):
 
     '''
-    # Find the stream by its name and type
-    inlet_name = 'speller_matrix_markers_online'
-    info = resolve_byprop('name', inlet_name)
-
-    # Create an inlet for the first found stream
-    inlet_markers = StreamInlet(info[0])
+    # Wait to receive a sample from the outlet
+    sample, timestamp = inlet.pull_sample()
+    print(sample, timestamp)
+    # Check if a "start looking for eye blinks" (Sbs = blink start) sample has been received
+    if sample[0] == 'Sbs':
+        # Process the received sample
+        marker = sample[0]
+        print(f"Received marker: {marker}")
+        looking_for_blinks = True
     '''
+
+        #while looking_for_blinks:
+    # If the matplotlib figure is closed
+    if figure_closed:
+        # Break out of the loop
+        break
+
+
+    # Get the EEG samples, time stamps and the index that tells from which
+    # point on the new samples have been appended to the buffer
+    samples_buffer, timestamps_buffer, n_new_samples = receive_eeg_samples(
+        inlet,
+        samples_buffer,
+        timestamps_buffer,
+        buffer_size=buffer_size,
+        chunk_size=chunk_size,
+    )
+
+
+    # Processing
+    # ==============================================================================
+    # Check if the calibration is over
+    if pbar_closed:
+        ############################################################################
+        # TODO: Band-pass filter the data
+        # Tip: filter_data from MNE
+        sfreq = 250 #from lsl_inlet.py
+        l_freq = 1
+        h_freq = 40 #or 40
+        filt_data = mne.filter.filter_data(np.array(samples_buffer).T, sfreq, l_freq, h_freq)
+        #filt_data = np.array(samples_buffer).T
+        ############################################################################
+
+        ############################################################################
+        # TODO: Smoothen the filtered signal with a moving average filter
+        # Tip: uniform_filter1d
+        moving_average = np.array(uniform_filter1d(filt_data,N)).T
+        #print(np.array(moving_average).shape)
+        ############################################################################
+        # Plotting
+        # ==========================================================================
+        # If there are new samples in the buffer
+        if n_new_samples > 0:
+            # Update the artists (lines) in the subplots
+            x_range = range(len(samples_buffer))
+            #print('shape filt_data')
+            #print(np.shape(filt_data))
+            bm._artists[0].set_data(x_range, np.array(filt_data).T[:,idx])
+            bm._artists[1].set_data(x_range, thr)
+            #print(thr, refractory_period)
+            #print('shape moving_average', np.shape(moving_average))
+            bm._artists[3].set_data(x_range, moving_average[:,idx])
+            bm._artists[4].set_data(x_range, thr)
+            bm.update()
+            #print('-----------------------')
+        if not refractory_period:
+            ########################################################################
+            # TODO: Implement the condition for peak detection
     
-    print("Looking for an EEG stream")
-    streams = resolve_stream()
-    print("Found one")
-    inlet = StreamInlet(streams[0])
-    print("Connected to the inlet")
+            #Get mean and std from baseline window
+            baseline_window = np.array(moving_average)[base_begin:base_end,idx]
+            #print(np.array(baseline_window).shape)
+            baseline_mean = np.mean(baseline_window)
+            baseline_std = np.std(baseline_window)
+            c = 7 #later find right value for the factor c
+            thr = baseline_mean + c*baseline_std
+            #print(thr)
+            
+            #print(np.shape(samples_buffer))
+            #print(activity_end- activity_begin)
+            activity_window = np.asarray(moving_average)[activity_begin:activity_end,idx]
+            #print(np.shape(activity_window))
+            max_activity = max(activity_window)
+            #print(max_activity)
+            #print(thr)
+            if max_activity <= thr:
+                detect_condition = 0
+            elif max_activity > thr:
+                detect_condition = 1
+            
+            ########################################################################
 
-    # Supress MNE messages and only show warnings
-    mne.set_log_level(verbose='WARNING')
+            if detect_condition:
+                # Send the time markers
+                stream_blink.push_sample(['blink-' + str(time())])
+                marker_list.append('blink-' + str(time()))
 
-    # Set the channel names
-    # ch_names = ['Fz', 'C3', 'Cz', 'C4', 'Pz', 'PO7', 'Oz', 'PO8']  # UHB
-    ch_names = [
-        'Fp1',
-        'Fp2',
-        'Fz',
-        'F7',
-        'F8',
-        'FC1',
-        'FC2',
-        'Cz',
-        'C3',
-        'C4',
-        'T7',
-        'T8',
-        'CPz',
-        'CP1',
-        'CP2',
-        'CP5',
-        'CP6',
-        'M1',
-        'M2',
-        'Pz',
-        'P3',
-        'P4',
-        'O1',
-        'O2',
-    ]  # Smarting
+                # Increment the counter
+                blink_counter += 1
 
-    # Sampling rate of the Unicorn Hybrid Black
-    sfreq = 250  # Hz
+                print(f'PEAK #{blink_counter} DETECTED')
+            
+                # Start the refractory period
+                refract_counter = 1
+                refractory_period = True
 
-    # Define the frequencies for the notch filter
-    uhb_notch_freqs = np.arange(50, 101, 50)
+                # return True if an eye-blinking was detected
+        else:
+            ########################################################################
+            # TODO: Implement refractory period and how to get out of it
+            if n_new_samples > 0:
+                #print(n_new_samples)
+                #print(refract_counter)
+                refract_counter += n_new_samples
+                #print(len_win + len_space)
+            if refract_counter >= len_win + len_space + len_base + 100:
+                refractory_period = False
+            ########################################################################
 
-    # Define the band-pass cutoff frequencies
-    flow, fhigh = 1, 30
-
-    # Create the info structure needed by MNE
-    info = mne.create_info(ch_names, sfreq, 'eeg')
-    # Add the system name to the info
-    # info['description'] = 'Unicorn Hybrid Black'
-    info['description'] = 'Smarting 24'
-
-    # Create the outlet stream information
-    info_blink = StreamInfo(
-        name='eye_blink_detection_markers',
-        type='Markers',
-        channel_count=1,
-        nominal_srate=0,
-        channel_format='string',
-        source_id='eye_blink_detection_markers',
-    )
-    info_eeg = StreamInfo(
-        name='filtered_data_stream',
-        type='eeg',
-        channel_count=24,
-        channel_format='float32',
-        source_id='smarting',
-    )
-
-    # Create the outlet to send data
-    stream_blink = StreamOutlet(info_blink)
-    stream_eeg = StreamOutlet(info_eeg)
-
-    # Initialize the marker list
-    marker_list = []
-
-    # Initalize the buffers
-    samples_buffer = []
-    timestamps_buffer = []
-
-    # Variables for the calibration
-    pbar = tqdm(desc='Calibration', total=buffer_size)
-    pbar_closed = False
-    old_val = 0
-
-    ####################################################################################
-    # TODO: Define all necessary variables
-
-    # Set the channel index (to a frontal channel)
-    idx = 1
-    ch = ch_names[idx]
-
-    # Define the length of the moving average filter (arbitrary)
-    N = 20
-
-    # Initalize the values for the refractory period
-    refractory_period = False
-    blink_counter = 0
-    ####################################################################################
-
-    # ==================================================================================
-    # PLOTTING
-    # ==================================================================================
-
-    # Define the subplot titles
-    title1 = f'Band-Pass Filtered Channel {ch}'
-    title2 = f'Moving Average Smoothened Channel {ch} (N={N})'
-
-    # Create an empty figure
-    fig = plt.figure()
-    bm = BlitManager(fig)
-    new_subplot(fig, bm, title=title1)
-    new_subplot(fig, bm, title=title2)
-
-    # Define what will happen when the figure is closed
-    # fig.canvas.mpl_connect('close_event', on_close)
-    # Variable to keep track of the closing of the matplotlib figure
-    figure_closed = False
-
-    plt.show(block=False)
-    plt.pause(0.1)
-
-    # pbar_closed = True
-
-    # ==================================================================================
-    # Single eye blink detection
-    # ==================================================================================
-    # Enter the endless loop
-    #change this!
-    while current_time - start_time <= wait_time:
-
-        '''
+    # Progress bar for calibration
+    # ==============================================================================
+    else:
+        # Get the current number of samples
+        len_buffer = len(timestamps_buffer)
+        # Calculate the progress update value
+        update_val = len_buffer - old_val
+        # Store the current number of samples for the next iteration
+        old_val = len_buffer
+        # Update the progress bar
+        pbar.update(update_val)
+        # If the progress bar is full
+        if len_buffer == buffer_size:
+            # Close the progress bar
+            pbar.close()
+            # Set the flag to get out of the loop
+            pbar_closed = True
+    '''
+    while True:
         # Wait to receive a sample from the outlet
         sample, timestamp = inlet.pull_sample()
-        print(sample, timestamp)
-        # Check if a "start looking for eye blinks" (Sbs = blink start) sample has been received
-        if sample[0] == 'Sbs':
+
+        # Check if a "stop blink detection" (Sbe = blink end) sample has been received
+        if sample[0] == 'Sbe':
             # Process the received sample
             marker = sample[0]
             print(f"Received marker: {marker}")
-            looking_for_blinks = True
-        '''
 
-            #while looking_for_blinks:
-        # If the matplotlib figure is closed
-        if figure_closed:
-            # Break out of the loop
+            #In this case, end the loop looking for eye blinks
+            looking_for_blinks = False
             break
-
-
-        # Get the EEG samples, time stamps and the index that tells from which
-        # point on the new samples have been appended to the buffer
-        samples_buffer, timestamps_buffer, n_new_samples = receive_eeg_samples(
-            inlet,
-            samples_buffer,
-            timestamps_buffer,
-            buffer_size=buffer_size,
-            chunk_size=chunk_size,
-        )
-
-
-        # Processing
-        # ==============================================================================
-        # Check if the calibration is over
-        if pbar_closed:
-            ############################################################################
-            # TODO: Band-pass filter the data
-            # Tip: filter_data from MNE
-            sfreq = 250 #from lsl_inlet.py
-            l_freq = 1
-            h_freq = 40 #or 40
-            filt_data = mne.filter.filter_data(np.array(samples_buffer).T, sfreq, l_freq, h_freq)
-            #filt_data = np.array(samples_buffer).T
-            ############################################################################
-
-            ############################################################################
-            # TODO: Smoothen the filtered signal with a moving average filter
-            # Tip: uniform_filter1d
-            moving_average = np.array(uniform_filter1d(filt_data,N)).T
-            #print(np.array(moving_average).shape)
-            ############################################################################
-
-            if not refractory_period:
-                ########################################################################
-                # TODO: Implement the condition for peak detection
-        
-                #Get mean and std from baseline window
-                baseline_window = np.array(moving_average)[base_begin:base_end,idx]
-                #print(np.array(baseline_window).shape)
-                baseline_mean = np.mean(baseline_window)
-                baseline_std = np.std(baseline_window)
-                c = 7 #later find right value for the factor c
-                thr = baseline_mean + c*baseline_std
-                #print(thr)
-                
-                #print(np.shape(samples_buffer))
-                #print(activity_end- activity_begin)
-                activity_window = np.asarray(moving_average)[activity_begin:activity_end,idx]
-                #print(np.shape(activity_window))
-                max_activity = max(activity_window)
-                #print(max_activity)
-                #print(thr)
-                if max_activity <= thr:
-                    detect_condition = 0
-                elif max_activity > thr:
-                    detect_condition = 1
-                
-                ########################################################################
-
-                if detect_condition:
-                    # Send the time markers
-                    stream_blink.push_sample(['blink-' + str(time())])
-                    marker_list.append('blink-' + str(time()))
-
-                    # Increment the counter
-                    blink_counter += 1
-
-                    print(f'PEAK #{blink_counter} DETECTED')
-                
-                    # Start the refractory period
-                    refract_counter = 1
-                    refractory_period = True
-
-                    # return True if an eye-blinking was detected
-                    return True
-            else:
-                ########################################################################
-                # TODO: Implement refractory period and how to get out of it
-                if n_new_samples > 0:
-                    #print(n_new_samples)
-                    #print(refract_counter)
-                    refract_counter += n_new_samples
-                    #print(len_win + len_space)
-                if refract_counter >= len_win + len_space + len_base + 100:
-                    refractory_period = False
-                ########################################################################
-
-        # Progress bar for calibration
-        # ==============================================================================
-        else:
-            # Get the current number of samples
-            len_buffer = len(timestamps_buffer)
-            # Calculate the progress update value
-            update_val = len_buffer - old_val
-            # Store the current number of samples for the next iteration
-            old_val = len_buffer
-            # Update the progress bar
-            pbar.update(update_val)
-            # If the progress bar is full
-            if len_buffer == buffer_size:
-                # Close the progress bar
-                pbar.close()
-                # Set the flag to get out of the loop
-                pbar_closed = True
-        '''
-        while True:
-            # Wait to receive a sample from the outlet
-            sample, timestamp = inlet.pull_sample()
-
-            # Check if a "stop blink detection" (Sbe = blink end) sample has been received
-            if sample[0] == 'Sbe':
-                # Process the received sample
-                marker = sample[0]
-                print(f"Received marker: {marker}")
-
-                #In this case, end the loop looking for eye blinks
-                looking_for_blinks = False
-                break
-        '''
-        current_time = time()
-
-    # return False if no eye-blinking occured during the time defined by wait_time
-    return False
-
+    '''
     # Plotting
     # ==========================================================================
     # If there are new samples in the buffer
@@ -544,7 +552,9 @@ def eye_blink_detection(wait_time):
         bm._artists[4].set_data(x_range, thr)
         bm.update()
         #print('-----------------------')
-        
-        
-print(eye_blink_detection(10))
+    current_time = time()
+
+# return False if no eye-blinking occured during the time defined by wait_time
+
+
 # %%
