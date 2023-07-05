@@ -117,6 +117,11 @@ font = pygame.font.Font(None, number_size)
 face = pygame.image.load('face_white.png')
 face_width = face.get_width()
 face_height = face.get_height()
+
+#calling pic
+call = pygame.image.load('call-up.png')
+call_w = call.get_width()
+call_h = call.get_height()
  
 running = True
 last_update_time = pygame.time.get_ticks()
@@ -134,6 +139,9 @@ instruction_number_index = 0
 
 #
 trials_per_task = 45
+
+#matrix to display selected digits
+chosen_number = []
 
 highlighted_symbols = []  # Keep track of the highlighted symbols
 
@@ -245,6 +253,7 @@ while running:
                 iteration_count = 0
         
     elif game_state == 2:
+        
         time.sleep(2)
         #Lets online_pr known we already send all number trials
         marker = 'End'
@@ -256,28 +265,64 @@ while running:
         
         #Wait until online_pr process data
         
-        state_sample = "0"
+        state_sample = "10"
         #states_inlet.flush()#Remove any residual data from buffer to start a clean acquisition
-        while(state_sample[0] != "S0" and state_sample[0] != "S1" and state_sample[0] != "S2"):
+        while(state_sample[0] != "0" and state_sample[0] != "1" and state_sample[0] != "2"):
             state_sample,_ = states_inlet.pull_sample()
-        time.sleep(2)
+        digit = state_sample[0]
         
         #Here we should add blinking confirmation, for now it is implemented with keyboard
-        confirmation = input("Is this the number you selected?: " + state_sample[0])
-        if confirmation == "a":
-            print("Prediction succesful")
-            marker = 'G'#good
-            outlet.push_sample([marker], pushthrough=True)
+        color = (150, 150, 150, 255)  # Light Gray
+        text = font.render("Wait for calibration...")
+        text_rect = text.get_rect(center=(window_width_px // 2, window_height_px // 2))
+        window.blit(text, text_rect)
+        pygame.display.update()
+        marker = 'Calibration'
+        outlet.push_sample([marker], pushthrough=True) 
+        time.sleep(2)
+        color = (150, 150, 150, 255)  # Light Gray
+        text = font.render("Is this the number you selected?: " + state_sample[0]+' Blink, if Yes.', True, color)
+        text_rect = text.get_rect(center=(window_width_px // 2, window_height_px // 2))
+        window.blit(text, text_rect)
+        pygame.display.update()            
+        # marker = 'Blink'
+        # outlet.push_sample([marker], pushthrough=True)    
+        while(state_sample[0] != "Yes" and state_sample[0] != "No"):
+            state_sample,_ = states_inlet.pull_sample()
+        time.sleep(1)
+        if state_sample[0] == "Yes":
+            chosen_number.append(digit)
+            color = (150, 150, 150, 255)  # Light Gray
+            text = font.render("Now your selected numbers are: " + chosen_number, True, color)
+            text_rect = text.get_rect(center=(window_width_px // 2, window_height_px // 2))
+            window.blit(text, text_rect)
+            pygame.display.update()
         else:
-            print("Try again")
-            marker = 'W'#wrong
-            outlet.push_sample([marker], pushthrough=True)
-        
-        game_state = 3
+            color = (150, 150, 150, 255)  # Light Gray
+            text = font.render("Failed detection. Try again", True, color)
+            text_rect = text.get_rect(center=(window_width_px // 2, window_height_px // 2))
+            window.blit(text, text_rect)
+            pygame.display.update()
+        if len(chosen_number) ==3:
+            game_state = 4
+        else:
+            game_state = 3
         
     elif game_state == 3:
         instruction_number_index = instruction_number_index + 1
         game_state = 0
+    elif game_state == 4:
+        # call_x = 
+        # call_y = 
+        call_position = call.get_rect(center=(window_width_px // 2, window_height_px // 2))
+        window.blit(call, call_position)
+        pygame.display.update()
+        time.sleep(0.5)
+        marker = 'Finish'
+        outlet.push_sample([marker], pushthrough=True)
+        break
+
+
 pygame.quit()
 
 
