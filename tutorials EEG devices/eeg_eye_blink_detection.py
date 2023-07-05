@@ -202,20 +202,22 @@ def new_subplot(fig, bm, title=None, color='navy', lw=2):
 
 
 # %%
-# if __name__ == '__main__':
+
 
 def eye_blink_detection(wait_time):
 
     start_time = time()
-    current_time = start_time()
+    current_time = start_time
 
+    '''
     # Find the stream by its name and type
     inlet_name = 'speller_matrix_markers_online'
     info = resolve_byprop('name', inlet_name)
 
     # Create an inlet for the first found stream
     inlet_markers = StreamInlet(info[0])
-
+    '''
+    
     print("Looking for an EEG stream")
     streams = resolve_stream()
     print("Found one")
@@ -332,7 +334,7 @@ def eye_blink_detection(wait_time):
     # TODO: Define all necessary variables
 
     # Set the channel index (to a frontal channel)
-    idx = 0
+    idx = 1
     ch = ch_names[idx]
 
     # Define the length of the moving average filter (arbitrary)
@@ -521,4 +523,7 @@ def eye_blink_detection(wait_time):
         bm._artists[4].set_data(x_range, thr)
         bm.update()
         #print('-----------------------')
+        
+        
+print(eye_blink_detection(10))
 # %%
