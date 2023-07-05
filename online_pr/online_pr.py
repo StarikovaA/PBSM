@@ -119,6 +119,8 @@ while(True):
     if STATE == States.IDLE:
         marker_sample, _ = marker_inlet.pull_sample()
         if (marker_sample[0] == "Init"):
+            eeg_inlet.flush()
+            marker_inlet.flush()
             STATE = States.ACQUISITION
     if STATE == States.ACQUISITION:
         if eeg_inlet.samples_available():
@@ -137,73 +139,6 @@ while(True):
                 if  marker_sample[0] == "End":
                     receive_data_flag = False
                     STATE = States.PROCESSING
-        '''
-        # Continuously receive and process data
-        eeg_samples = []
-        eeg_timestamps = []
-        marker_samples = []
-        corrected_marker_timestamps = []
-        receive_data_flag = True
-        marker_sample, marker_timestamp = marker_inlet.pull_sample()
-        if marker_sample[0] == "StartTask":
-            #eeg_inlet.flush()#Remove any residual data from buffer to start a clean acquisition
-            #marker_inlet.flush()#Remove any residual data from buffer to start a clean acquisition
-            while(receive_data_flag):
-                # Receive data from eeg stream
-                eeg_sample, eeg_timestamp = eeg_inlet.pull_sample()
-                eeg_samples.append(eeg_sample)
-                eeg_timestamps.append(eeg_timestamp)
-            
-                # Receive data from marker stream
-                if marker_inlet.samples_available():
-                    marker_sample, marker_timestamp = marker_inlet.pull_sample()
-                    # Compute latency between timestamps
-                    latency = eeg_timestamp - marker_timestamp
-                    # Adjust marker timestamp so it match with eeg timestamps
-                    corrected_marker_timestamp = marker_timestamp + latency
-                    marker_samples.append(marker_sample)
-                    corrected_marker_timestamps.append(corrected_marker_timestamp)
-                    if  marker_sample[0] == "End":
-                        receive_data_flag = False
-                        STATE = States.PROCESSING
-        '''
-        '''               
-        eeg_sample, eeg_timestamp = eeg_inlet.pull_sample()
-        eeg_samples.append(eeg_sample)
-        eeg_timestamps.append(eeg_timestamp)
-        if marker_inlet.samples_available():
-            marker_sample, marker_timestamp = marker_inlet.pull_sample()
-            if marker_sample[0] == "StartTask":
-                receive_data_flag = True
-                marker_samples = []
-                corrected_marker_timestamps = []
-                # Compute latency between timestamps
-                latency = eeg_timestamp - marker_timestamp
-                # Adjust marker timestamp so it match with eeg timestamps
-                corrected_marker_timestamp = marker_timestamp + latency
-                marker_samples.append(marker_sample)
-                corrected_marker_timestamps.append(corrected_marker_timestamp)
-                #eeg_inlet.flush()#Remove any residual data from buffer to start a clean acquisition
-                #marker_inlet.flush()#Remove any residual data from buffer to start a clean acquisition
-                while(receive_data_flag):
-                    # Receive data from eeg stream
-                    eeg_sample, eeg_timestamp = eeg_inlet.pull_sample()
-                    eeg_samples.append(eeg_sample)
-                    eeg_timestamps.append(eeg_timestamp)
-                
-                    # Receive data from marker stream
-                    if marker_inlet.samples_available():
-                        marker_sample, marker_timestamp = marker_inlet.pull_sample()
-                        # Compute latency between timestamps
-                        latency = eeg_timestamp - marker_timestamp
-                        # Adjust marker timestamp so it match with eeg timestamps
-                        corrected_marker_timestamp = marker_timestamp + latency
-                        marker_samples.append(marker_sample)
-                        corrected_marker_timestamps.append(corrected_marker_timestamp)
-                        if  marker_sample[0] == "End":
-                            receive_data_flag = False
-                            STATE = States.PROCESSING
-        '''
     if STATE == States.PROCESSING:
         eeg_samples = np.transpose(np.array(eeg_samples))
         eeg_timestamps = np.array(eeg_timestamps)
@@ -288,25 +223,42 @@ while(True):
         print(prediction[1])
         print(prediction[2])
 
-        marker = "S0"
+        marker = "0"
         outlet.push_sample([marker], pushthrough=True)
         STATE = States.WAIT_BLINK_CONFIRMATION
     if STATE == States.WAIT_BLINK_CONFIRMATION:
         marker_sample = "0"
         #marker_inlet.flush()#Remove any residual data from buffer to start a clean acquisition
-        while(marker_sample[0] != "G" and marker_sample[0] != "W"):
+        while(marker_sample[0] != "Blink"):
             marker_sample,_ = marker_inlet.pull_sample()
+        blink_flag = False
+        #Blinking function
+        #Send yes or no
+        marker = "S0"
+        if (blink_flag):
+            marker = "Yes"
+            outlet.push_sample([marker], pushthrough=True)
+        else:
+            marker = "No"
+            outlet.push_sample([marker], pushthrough=True)
+            
         STATE = States.END
     if STATE == States.END:
-        if marker_sample[0] == "G":
+        marker_sample = "0"
+        #marker_inlet.flush()#Remove any residual data from buffer to start a clean acquisition
+        while(marker_sample[0] != "Finish"):
+            marker_sample,_ = marker_inlet.pull_sample()
+        if marker_sample[0] == "Finish":
+            break
+        else:
             eeg_samples = []
             eeg_timestamps = []
             marker_samples = []
             marker_timestamps = []
             corrected_marker_timestamps = []
+            eeg_inlet.flush()
+            marker_inlet.flush()
             STATE = States.ACQUISITION
-        else:
-            break
 # %%
 plt.plot(time,avg_marker_S0[21,:],color='lightgreen')
 plt.plot(time,avg_marker_S1[21,:],color='red')
