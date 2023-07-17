@@ -149,7 +149,7 @@ while(True):
         low_bandpass_fr = 2
         high_bandpass_fr = 16
         eeg_samples_filter = mne.filter.filter_data(eeg_samples.astype(np.float64),sampling_rate,low_bandpass_fr,high_bandpass_fr)
-        #To do the epoching we will first split the marker_sample array according to its 
+        # To do the epoching we will first split the marker_sample array according to its 
         # marker, S0, S1 or S2. By finding the indices of each one, we can use them to 
         # index their corresponding timestamps. That is, obtain the times in which each 
         # marker occurred. Having this information, we only have to search for these times 
@@ -162,9 +162,6 @@ while(True):
         timestamps_S0 = np.take(marker_timestamps, markers_S0_idx)
         timestamps_S1 = np.take(marker_timestamps, markers_S1_idx)
         timestamps_S2 = np.take(marker_timestamps, markers_S2_idx)
-        #timestamps_S0 = marker_timestamps[markers_S0_idx]
-        #timestamps_S1 = marker_timestamps[markers_S1_idx]
-        #timestamps_S2 = marker_timestamps[markers_S2_idx]
 
         eeg_timestamps_marker_S0 = find_nearest_indices(timestamps_S0,eeg_timestamps)
         eeg_timestamps_marker_S1 = find_nearest_indices(timestamps_S1,eeg_timestamps)
@@ -202,48 +199,66 @@ while(True):
         lower_idx = np.where(time >= lower_time_window)[0][0]
         upper_idx = np.where(time <= upper_time_window)[0][-1]
         
-        plt.plot(time,avg_marker_S0[21,:],color='lightgreen')
-        plt.plot(time,avg_marker_S1[21,:],color='red')
-        plt.plot(time,avg_marker_S2[21,:],color='black')
-        legend_labels = ['0', '1', '2']
-        plt.legend(legend_labels)
-        plt.show()
+        #plt.plot(time,avg_marker_S0[21,:],color='lightgreen')
+        #plt.plot(time,avg_marker_S1[21,:],color='red')
+        #plt.plot(time,avg_marker_S2[21,:],color='black')
+        #legend_labels = ['0', '1', '2']
+        #plt.legend(legend_labels)
+        #plt.show()
         
-        feature_1_S0 = np.max(avg_marker_S0[:, lower_idx:upper_idx], axis=1)#Get the maximum amplitude for each average non event trial per task in the given range and store it in the feature vector
-        feature_1_S1 = np.max(avg_marker_S1[:, lower_idx:upper_idx], axis=1)#Get the maximum amplitude for each average non event trial per task in the given range and store it in the feature vector
-        feature_1_S2 = np.max(avg_marker_S2[:, lower_idx:upper_idx], axis=1)#Get the maximum amplitude for each average non event trial per task in the given range and store it in the feature vector
+        #Get the maximum amplitude for each average non event trial per task in the given range and store it in the feature vector
+        feature_1_S0 = np.max(avg_marker_S0[:, lower_idx:upper_idx], axis=1)
+        feature_1_S1 = np.max(avg_marker_S1[:, lower_idx:upper_idx], axis=1)
+        feature_1_S2 = np.max(avg_marker_S2[:, lower_idx:upper_idx], axis=1)
         STATE = States.CLASSIFICATION
     if STATE == States.CLASSIFICATION:
+        
+        # From each event feature vector extract the best features
         best_feature_1_S0 = feature_1_S0[best_features_idx]
         best_feature_1_S1 = feature_1_S1[best_features_idx]
         best_feature_1_S2 = feature_1_S2[best_features_idx]
+        
+        #Concatenate best features into a single feature vector
         feature_vector = [best_feature_1_S0, best_feature_1_S1, best_feature_1_S2]
         
+        #Predict the probability that each input to the classifier (feature row) belongs to each of the two classes (event or non event)
         prediction_prob = loaded_model.predict_proba(feature_vector)
+        #Predcit the labels
         prediction = loaded_model.predict(feature_vector)
-        prediction_idx = np.where(prediction == 1)[0]
-        
-        
+                
+        #Print just for visualization and debugging
         print(prediction[0])
         print(prediction[1])
         print(prediction[2])
-        all_non_event = np.where(prediction == -1)[0]
-        if(len(all_non_event) == 3):
-            digit = 1
-        else:
-            prediction_max_prob_idx = np.argmax(prediction_prob[prediction_idx][:,1])
-            print("prediction_max_prob_idx: ", prediction_max_prob_idx)
-            digit = prediction_idx[prediction_max_prob_idx]
-            print("digit 1: ", prediction_max_prob_idx)
         
-        print("digit 2: ", digit)
-
+        
+        all_non_event = np.where(prediction == -1)[0] #Detection of event not detected (cases in which there is no P300 in any event (all true negatives) or 
+                                                      #that the classifier failed to correctly classify at least one event (false negatives))
+        if(len(all_non_event) == 3):
+            digit = 4 #This value will tell the experiment that no input to the classifier was classified as an event.
+        else:
+            #Look for the indices (0,1 or 2) that are predicted to belong to the event class
+            prediction_idx = np.where(prediction == 1)[0]
+            #Each prediction probability has two values, the first specifies the prediction probability of belonging 
+            # to the non envet class, the second specifies the prediction probability of belonging to the event class.
+            
+            # 1. Obtain the prediction probability of belonging to the event class only for those entries to the classifier 
+            # (features row) that have a label that classifies them as event, that is, prediction_prob[prediction_idx][:,1].
+            
+            # 2. From the above, get the index of the input of the classifier that has the highest prediction probability 
+            # (np.argmax(prediction_prob[prediction_idx][:,1])) and use it to define the final prediction of the classifier (digit = prediction_idx[prediction_max_prob_idx])
+            prediction_max_prob_idx = np.argmax(prediction_prob[prediction_idx][:,1])
+            digit = prediction_idx[prediction_max_prob_idx]
+        
         marker = str(digit)
         outlet.push_sample([marker], pushthrough=True)
-        STATE = States.WAIT_BLINK_CONFIRMATION
+        if digit == 4:#If there is no event detection jump to END state so the program can reset variables and collect data again
+            STATE = States.END
+        else:
+            STATE = States.WAIT_BLINK_CONFIRMATION #If there is at least one event detection wait for blink confirmation from the user
     if STATE == States.WAIT_BLINK_CONFIRMATION:
-        marker_sample = "0"
-        #marker_inlet.flush()#Remove any residual data from buffer to start a clean acquisition
+        marker_sample = "10"#Set a default value before receiving the marker
+        marker_sample,_ = marker_inlet.pull_sample()
         while(marker_sample[0] != "Calibration"):
             marker_sample,_ = marker_inlet.pull_sample()
         #Blinking function
@@ -251,8 +266,8 @@ while(True):
         blink_flag = eye_blink_detection(10)
         print(blink_flag)
         
-        #Send yes or no
-        marker = "S0"
+        #Send yes or no depending on blink detection
+        marker = "S0"#Set a default value before receiving the marker
         if (blink_flag):
             marker = "Yes"
             outlet.push_sample([marker], pushthrough=True)
@@ -262,10 +277,8 @@ while(True):
             
         STATE = States.END
     if STATE == States.END:
-        marker_sample = "0"
-        #marker_inlet.flush()#Remove any residual data from buffer to start a clean acquisition
+        marker_sample = "10"
         marker_sample,_ = marker_inlet.pull_sample()
-        print(marker_sample[0])
         while(marker_sample[0] != "Finish" and marker_sample[0] != "NotFinish"):
             marker_sample,_ = marker_inlet.pull_sample()
         if marker_sample[0] == "Finish":

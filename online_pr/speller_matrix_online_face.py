@@ -53,12 +53,6 @@ print(f'Extended description: {states_inlet.info().desc()}')
 # print(f'Stream info in XML format:\n{inlet.info().as_xml()}')
 
 states_inlet.open_stream()
-#%%
-#
-highlight_number_per_task = np.repeat(["0", "1", "2"], 10)
-random.shuffle(highlight_number_per_task)
-
-print(highlight_number_per_task)
 
 # %%
 # Initialize Pygame
@@ -146,8 +140,6 @@ chosen_number = []
 highlighted_symbols = []  # Keep track of the highlighted symbols
 
 while running:
-    if instruction_number_index == len(highlight_number_per_task):
-        running = False
     if game_state == 0:
         if (running is not False):            
             if scene_state == 0:
@@ -265,14 +257,12 @@ while running:
         
         #Wait until online_pr process data
         
-        state_sample = "10"
-        #states_inlet.flush()#Remove any residual data from buffer to start a clean acquisition
+        state_sample = "10"#Set a default value before receiving the marker
         state_sample,_ = states_inlet.pull_sample()
-        while(state_sample[0] != "0" and state_sample[0] != "1" and state_sample[0] != "2"):
+        while(state_sample[0] != "0" and state_sample[0] != "1" and state_sample[0] != "2" and state_sample[0] != "4"):
             state_sample,_ = states_inlet.pull_sample()
         digit = state_sample[0]
-        
-        #Here we should add blinking confirmation, for now it is implemented with keyboard
+        print(digit)
         window.fill((0, 0, 0))  # Black
         pygame.display.update()
         color = (150, 150, 150, 255)  # Light Gray
@@ -285,39 +275,49 @@ while running:
         time.sleep(2)
         window.fill((0, 0, 0))  # Black
         pygame.display.update()
-        color = (150, 150, 150, 255)  # Light Gray
-        text = font.render("Is this the number you selected?: " + digit +' Blink, if Yes.', True, color)
-        text_rect = text.get_rect(center=(window_width_px // 2, window_height_px // 2))
-        window.blit(text, text_rect)
-        pygame.display.update()            
-        # marker = 'Blink'
-        # outlet.push_sample([marker], pushthrough=True)
-        state_sample,_ = states_inlet.pull_sample() 
-        while(state_sample[0] != "Yes" and state_sample[0] != "No"):
-            state_sample,_ = states_inlet.pull_sample()
-            print(state_sample[0])
-        time.sleep(1)
-        if state_sample[0] == "Yes":
-            window.fill((0, 0, 0))  # Black
-            pygame.display.update()
-            chosen_number.append(digit)
+        if (digit != "4"):
+            
             color = (150, 150, 150, 255)  # Light Gray
-            text = font.render(f"Now your selected numbers are: {chosen_number}", True, color)
+            text = font.render("Is this the number you selected?: " + digit +' Blink, if Yes.', True, color)
             text_rect = text.get_rect(center=(window_width_px // 2, window_height_px // 2))
             window.blit(text, text_rect)
-            pygame.display.update()
-            time.sleep(2)
-            window.fill((0, 0, 0))  # Black
-            pygame.display.update()
-        else:
-            window.fill((0, 0, 0))  # Black
-            pygame.display.update()
-            color = (150, 150, 150, 255)  # Light Gray
-            text = font.render("Failed detection. Try again", True, color)
-            text_rect = text.get_rect(center=(window_width_px // 2, window_height_px // 2))
-            window.blit(text, text_rect)
-            pygame.display.update()
+            pygame.display.update()            
+            state_sample = "10"#Set a default value before receiving the marker
+            state_sample,_ = states_inlet.pull_sample() 
+            while(state_sample[0] != "Yes" and state_sample[0] != "No"):
+                state_sample,_ = states_inlet.pull_sample()
+                print(state_sample[0])
             time.sleep(1)
+            if state_sample[0] == "Yes":
+                window.fill((0, 0, 0))  # Black
+                pygame.display.update()
+                chosen_number.append(digit)
+                color = (150, 150, 150, 255)  # Light Gray
+                text = font.render(f"Now your selected numbers are: {chosen_number}", True, color)
+                text_rect = text.get_rect(center=(window_width_px // 2, window_height_px // 2))
+                window.blit(text, text_rect)
+                pygame.display.update()
+                time.sleep(2)
+                window.fill((0, 0, 0))  # Black
+                pygame.display.update()
+            else:
+                window.fill((0, 0, 0))  # Black
+                pygame.display.update()
+                color = (150, 150, 150, 255)  # Light Gray
+                text = font.render("Failed detection. Try again", True, color)
+                text_rect = text.get_rect(center=(window_width_px // 2, window_height_px // 2))
+                window.blit(text, text_rect)
+                pygame.display.update()
+                time.sleep(1)
+                window.fill((0, 0, 0))  # Black
+                pygame.display.update()
+        else:
+            color = (150, 150, 150, 255)  # Light Gray
+            text = font.render("Selection not detected, please try again", True, color)
+            text_rect = text.get_rect(center=(window_width_px // 2, window_height_px // 2))
+            window.blit(text, text_rect)
+            pygame.display.update()
+            time.sleep(3)
             window.fill((0, 0, 0))  # Black
             pygame.display.update()
         if len(chosen_number) ==3:
@@ -331,8 +331,6 @@ while running:
         marker = 'NotFinish'
         outlet.push_sample([marker], pushthrough=True)
     elif game_state == 4:
-        # call_x = 
-        # call_y = 
         call_position = call.get_rect(center=(window_width_px // 2, window_height_px // 2))
         window.blit(call, call_position)
         pygame.display.update()
