@@ -190,7 +190,7 @@ while(True):
 
         #Select a window to look for maximum and get the indexes
         time = np.arange(tmin,tmax,1/int(sampling_rate))
-        lower_time_window = 0.200
+        lower_time_window = 0.250
         upper_time_window = 0.350
         lower_idx = np.where(time >= lower_time_window)[0][0]
         upper_idx = np.where(time <= upper_time_window)[0][-1]
