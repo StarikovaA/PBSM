@@ -1,3 +1,5 @@
+# For a complete description of the application refer to PBSM_final_project.pdf
+
 # Steps to use the Brain Machine Interface in the Speller Matrix application in the p300 paradigm
 
 ## Offline
@@ -12,7 +14,7 @@
 
   According to our results, experiment 3 provides the best set-up for the speller matrix application. Choose one experiment and run it until line 42.
 
-  **Note: Within this folder you will also find previously collected data. If you do not want to collect new data and prefer to use the sample data instead, please skip to step 7.**
+  **Note: Within this folder you will also find previously collected data. If you do not want to collect new data and prefer to use the sample data instead, please skip to step 7. However, keep in mind that for a better performance of the program it is preferable to adjust the classifier for each user following the steps in this section.**
 
 - Step 3: Run the LabRecorder.exe application, select the stream coming from the Smarting device and speller_matrix_markers_training. Fill in the fields according to the specifications of your experiment (session, subject, age, etc) and press start.
 
